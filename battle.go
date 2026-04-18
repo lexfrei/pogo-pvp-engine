@@ -67,8 +67,9 @@ func (c *Combatant) Valid() error {
 		return err
 	}
 
-	if c.Shields < 0 {
-		return fmt.Errorf("%w: negative shield count %d", ErrInvalidCombatant, c.Shields)
+	if c.Shields < 0 || c.Shields > MaxShields {
+		return fmt.Errorf("%w: shield count %d outside [0, %d]",
+			ErrInvalidCombatant, c.Shields, MaxShields)
 	}
 
 	return nil

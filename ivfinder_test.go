@@ -200,6 +200,33 @@ func TestFindOptimalSpread_InvalidOpts(t *testing.T) {
 	}
 }
 
+// TestFindOptimalSpread_DefaultBoundsApply verifies that leaving
+// MinLevelCap / MaxLevelCap at zero falls back to [MinLevel,
+// NoXLMaxLevel] when XLAllowed=false and [MinLevel, MaxLevel] when it
+// is true. This pins the zero-as-sentinel contract documented on
+// FindSpreadOpts.
+func TestFindOptimalSpread_DefaultBoundsApply(t *testing.T) {
+	t.Parallel()
+
+	base := pogopvp.BaseStats{Atk: 143, Def: 285, HP: 190}
+
+	noXL, err := pogopvp.FindOptimalSpread(base, 2500, pogopvp.FindSpreadOpts{XLAllowed: false})
+	if err != nil {
+		t.Fatalf("no-XL default: %v", err)
+	}
+	if noXL.Level > pogopvp.NoXLMaxLevel {
+		t.Errorf("no-XL default level=%f > NoXLMaxLevel=%f", noXL.Level, pogopvp.NoXLMaxLevel)
+	}
+
+	withXL, err := pogopvp.FindOptimalSpread(base, 2500, pogopvp.FindSpreadOpts{XLAllowed: true})
+	if err != nil {
+		t.Fatalf("with-XL default: %v", err)
+	}
+	if withXL.Level > pogopvp.MaxLevel {
+		t.Errorf("with-XL default level=%f > MaxLevel=%f", withXL.Level, pogopvp.MaxLevel)
+	}
+}
+
 func TestFindOptimalSpread_UnreachableCap(t *testing.T) {
 	t.Parallel()
 

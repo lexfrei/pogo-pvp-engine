@@ -361,6 +361,7 @@ func TestSimulate_InvalidCombatantReturnsError(t *testing.T) {
 		{"fast move no energy gain", func(c *pogopvp.Combatant) { c.FastMove.EnergyGain = 0 }},
 		{"fast move zero turns", func(c *pogopvp.Combatant) { c.FastMove.Turns = 0 }},
 		{"negative shields", func(c *pogopvp.Combatant) { c.Shields = -1 }},
+		{"shields above max", func(c *pogopvp.Combatant) { c.Shields = pogopvp.MaxShields + 1 }},
 		{"charged move zero energy", func(c *pogopvp.Combatant) {
 			c.ChargedMoves = []pogopvp.Move{{ID: "BAD", Energy: 0}}
 		}},
