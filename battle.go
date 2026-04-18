@@ -1,5 +1,16 @@
 package pogopvp
 
+import (
+	"errors"
+	"fmt"
+	"math"
+)
+
+// ErrInvalidCombatant is returned by [Simulate] when either combatant has
+// invalid state — level outside the valid grid, out-of-range IV, or a
+// fast move that cannot generate energy.
+var ErrInvalidCombatant = errors.New("invalid combatant")
+
 // MaxEnergy is the upper bound on the energy pool. Both fast-move gains
 // and unused charged-move reservoirs clamp here.
 const MaxEnergy = 100
@@ -16,7 +27,8 @@ const (
 )
 
 // defaultMaxTurns is a generous ceiling (~4 minutes of game time) that
-// lets full-HP stall matches resolve without capping prematurely.
+// lets full-HP stall matches resolve without capping prematurely when the
+// caller does not set [BattleOptions.MaxTurns].
 const defaultMaxTurns = 500
 
 // shieldedDamage is the damage a successfully shielded charged move deals.
@@ -37,9 +49,69 @@ type Combatant struct {
 	Shields      int
 }
 
-// BattleOptions tunes non-combatant knobs. MaxTurns caps the simulation
-// length; a value of 0 disables the cap (the simulation runs until one
-// side faints). One turn corresponds to 500 ms of game time.
+// Valid performs the invariant checks [Simulate] applies on entry: level
+// on the 0.5 grid in [MinLevel, MaxLevel], IV inside [0, MaxIV], a fast
+// move that produces energy, and non-negative shields.
+func (c *Combatant) Valid() error {
+	err := validateCombatantLevel(c.Level)
+	if err != nil {
+		return err
+	}
+
+	if !c.IV.Valid() {
+		return fmt.Errorf("%w: IV out of range: %+v", ErrInvalidCombatant, c.IV)
+	}
+
+	err = validateCombatantMoves(c)
+	if err != nil {
+		return err
+	}
+
+	if c.Shields < 0 {
+		return fmt.Errorf("%w: negative shield count %d", ErrInvalidCombatant, c.Shields)
+	}
+
+	return nil
+}
+
+func validateCombatantLevel(level float64) error {
+	if math.IsNaN(level) || level < MinLevel || level > MaxLevel {
+		return fmt.Errorf("%w: level %v outside [%.1f, %.1f]",
+			ErrInvalidCombatant, level, MinLevel, MaxLevel)
+	}
+
+	if doubled := level * 2; doubled != math.Trunc(doubled) {
+		return fmt.Errorf("%w: level %v is not on the 0.5 grid", ErrInvalidCombatant, level)
+	}
+
+	return nil
+}
+
+func validateCombatantMoves(c *Combatant) error {
+	if c.FastMove.EnergyGain <= 0 {
+		return fmt.Errorf("%w: fast move %q has non-positive EnergyGain=%d",
+			ErrInvalidCombatant, c.FastMove.ID, c.FastMove.EnergyGain)
+	}
+
+	if c.FastMove.Turns <= 0 {
+		return fmt.Errorf("%w: fast move %q has non-positive Turns=%d",
+			ErrInvalidCombatant, c.FastMove.ID, c.FastMove.Turns)
+	}
+
+	for _, move := range c.ChargedMoves {
+		if move.Energy <= 0 {
+			return fmt.Errorf("%w: charged move %q has non-positive Energy=%d",
+				ErrInvalidCombatant, move.ID, move.Energy)
+		}
+	}
+
+	return nil
+}
+
+// BattleOptions tunes non-combatant knobs. MaxTurns is an upper bound on
+// simulation length; 0 defaults to [defaultMaxTurns]. Pass a very large
+// number (math.MaxInt32) for an effectively unbounded simulation. One
+// turn corresponds to 500 ms of game time.
 type BattleOptions struct {
 	MaxTurns int
 }
@@ -72,17 +144,43 @@ type combatantState struct {
 	shieldsUsed   int
 }
 
-// Simulate plays a match between two combatants using the pvpoke Battle.js
-// tick model. Each turn is 500 ms of game time; fast moves fire when their
-// cooldown reaches zero, add energy (capped at [MaxEnergy]), and reset the
-// cooldown. Whenever a side's energy reaches or exceeds the cheapest
-// charged move's cost it fires that charged move — the defender shields
-// it if any shields remain, otherwise the full damage lands. The first
-// side to reach HP <= 0 loses; simultaneous faints produce [BattleTie];
-// running out of turns produces [BattleTimeout].
-func Simulate(attacker, defender *Combatant, opts BattleOptions) BattleResult {
-	cpmA, _ := CPMAt(attacker.Level)
-	cpmB, _ := CPMAt(defender.Level)
+// Simulate plays a match between two combatants using a simplified
+// pvpoke-inspired tick model: each turn is 500 ms of game time; fast
+// moves fire when their cooldown reaches zero, add energy (capped at
+// [MaxEnergy]), and reset the cooldown. Whenever a side's energy covers
+// the cheapest affordable charged move it fires — the defender shields
+// if any remain, otherwise the full damage lands. A side that faints
+// from the fast-damage round of a tick does not get to throw a charged
+// move that same tick.
+//
+// The simulator is intentionally simpler than upstream pvpoke Battle.js:
+// it does not model Charge-Move-Priority (simultaneous throws resolve
+// in index order), does not apply shadow Atk/Def factors, and resolves
+// fast damage before charged throws on the shared tick. These are
+// known gaps that the ranker will need to address before full parity.
+//
+// Returns [ErrInvalidCombatant] wrapping the specific field that failed
+// validation if either combatant carries out-of-range state.
+func Simulate(attacker, defender *Combatant, opts BattleOptions) (BattleResult, error) {
+	err := attacker.Valid()
+	if err != nil {
+		return BattleResult{}, fmt.Errorf("attacker: %w", err)
+	}
+
+	err = defender.Valid()
+	if err != nil {
+		return BattleResult{}, fmt.Errorf("defender: %w", err)
+	}
+
+	cpmA, err := CPMAt(attacker.Level)
+	if err != nil {
+		return BattleResult{}, fmt.Errorf("attacker: %w", err)
+	}
+
+	cpmB, err := CPMAt(defender.Level)
+	if err != nil {
+		return BattleResult{}, fmt.Errorf("defender: %w", err)
+	}
 
 	statsA := ComputeStats(attacker.Species.BaseStats, attacker.IV, cpmA)
 	statsB := ComputeStats(defender.Species.BaseStats, defender.IV, cpmB)
@@ -91,7 +189,7 @@ func Simulate(attacker, defender *Combatant, opts BattleOptions) BattleResult {
 		initState(attacker, statsA, defender.Species.Types),
 		initState(defender, statsB, attacker.Species.Types),
 	}
-	moves := [2]Combatant{*attacker, *defender}
+	combatants := [2]Combatant{*attacker, *defender}
 
 	maxTurns := opts.MaxTurns
 	if maxTurns <= 0 {
@@ -102,10 +200,10 @@ func Simulate(attacker, defender *Combatant, opts BattleOptions) BattleResult {
 	for turn < maxTurns && state[0].hp > 0 && state[1].hp > 0 {
 		turn++
 
-		advanceTick(&state, &moves)
+		advanceTick(&state, &combatants)
 	}
 
-	return buildResult(&state, turn, maxTurns)
+	return buildResult(&state, turn, maxTurns), nil
 }
 
 // buildResult collects the final counters into a [BattleResult]. HPs are
@@ -152,8 +250,10 @@ func initState(combatant *Combatant, stats Stats, opponentTypes []string) combat
 }
 
 // advanceTick decrements both cooldowns, fires any fast moves whose
-// cooldown hits zero, and resolves charged-move throws in sequence so
-// the defender's shield state is consistent when the second throw lands.
+// cooldown hits zero, and resolves charged-move throws. A side that has
+// already fainted to fast-move damage this tick does not throw back —
+// the death-cancels-throwback rule matches in-game behaviour for
+// simultaneous fast/charged resolution.
 func advanceTick(state *[2]combatantState, combatants *[2]Combatant) {
 	var actedFast [2]bool
 
@@ -171,7 +271,7 @@ func advanceTick(state *[2]combatantState, combatants *[2]Combatant) {
 	}
 
 	for i := range state {
-		if !actedFast[i] {
+		if !actedFast[i] || state[i].hp <= 0 {
 			continue
 		}
 
@@ -249,12 +349,15 @@ type chargedMoveChoice struct {
 
 // cheapestAffordable picks the cheapest charged move whose cost fits in
 // the given energy pool. An Index < 0 signals nothing is affordable.
+// Cost must be positive to prevent a zero-cost infinite-fire loop — the
+// gamemaster parser rejects such moves but this function is exported and
+// guards itself. Ties on cost resolve to the lower index.
 func cheapestAffordable(moves []Move, energy int) chargedMoveChoice {
 	best := chargedMoveChoice{Index: -1}
 
 	for i := range moves {
 		cost := moves[i].Energy
-		if cost > energy {
+		if cost <= 0 || cost > energy {
 			continue
 		}
 

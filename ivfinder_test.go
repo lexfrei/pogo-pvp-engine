@@ -156,6 +156,50 @@ func bestSPForIV(base pogopvp.BaseStats, iv pogopvp.IV, cpCap int, maxLevel floa
 	return best
 }
 
+func TestFindOptimalSpread_InvalidOpts(t *testing.T) {
+	t.Parallel()
+
+	base := pogopvp.BaseStats{Atk: 150, Def: 150, HP: 150}
+
+	cases := []struct {
+		name string
+		cap  int
+		opts pogopvp.FindSpreadOpts
+	}{
+		{"negative cap", -1, pogopvp.FindSpreadOpts{XLAllowed: true}},
+		{"zero cap", 0, pogopvp.FindSpreadOpts{XLAllowed: true}},
+		{"min above max", 1500, pogopvp.FindSpreadOpts{
+			XLAllowed: true, MinLevelCap: 40.0, MaxLevelCap: 20.0,
+		}},
+		{"max above engine max", 1500, pogopvp.FindSpreadOpts{
+			XLAllowed: true, MaxLevelCap: 60.0,
+		}},
+		{"min below engine min", 1500, pogopvp.FindSpreadOpts{
+			XLAllowed: true, MinLevelCap: 0.5,
+		}},
+		{"off-grid max", 1500, pogopvp.FindSpreadOpts{
+			XLAllowed: true, MaxLevelCap: 40.25,
+		}},
+		{"xl required but disallowed", 1500, pogopvp.FindSpreadOpts{
+			XLAllowed: false, MaxLevelCap: 50.0,
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := pogopvp.FindOptimalSpread(base, tc.cap, tc.opts)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !errors.Is(err, pogopvp.ErrInvalidSpreadOpts) {
+				t.Errorf("error = %v, want wrapping ErrInvalidSpreadOpts", err)
+			}
+		})
+	}
+}
+
 func TestFindOptimalSpread_UnreachableCap(t *testing.T) {
 	t.Parallel()
 
