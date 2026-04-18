@@ -134,35 +134,62 @@ func ParseGamemaster(reader io.Reader) (*Gamemaster, error) {
 		Moves:   make(map[string]Move, len(raw.Moves)),
 	}
 
-	for index := range raw.Pokemon {
-		species, err := convertSpecies(index, &raw.Pokemon[index])
+	err = indexSpecies(gamemaster, raw.Pokemon)
+	if err != nil {
+		return nil, err
+	}
+
+	err = indexMoves(gamemaster, raw.Moves)
+	if err != nil {
+		return nil, err
+	}
+
+	return gamemaster, nil
+}
+
+// indexSpecies promotes every raw Pokémon entry and populates the
+// gamemaster map, rejecting duplicates.
+func indexSpecies(gamemaster *Gamemaster, entries []speciesRaw) error {
+	for index := range entries {
+		species, err := convertSpecies(index, &entries[index])
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		_, exists := gamemaster.Pokemon[species.ID]
 		if exists {
-			return nil, fmt.Errorf("%w: duplicate speciesId %q", ErrGamemasterInvalid, species.ID)
+			return fmt.Errorf("%w: duplicate speciesId %q", ErrGamemasterInvalid, species.ID)
 		}
 
 		gamemaster.Pokemon[species.ID] = species
 	}
 
-	for index := range raw.Moves {
-		move, err := convertMove(index, &raw.Moves[index])
+	return nil
+}
+
+// indexMoves promotes every raw move entry and populates the gamemaster
+// map. Moves that convertMove marks as skipped (e.g. TRANSFORM) are
+// silently dropped.
+func indexMoves(gamemaster *Gamemaster, entries []moveRaw) error {
+	for index := range entries {
+		move, keep, err := convertMove(index, &entries[index])
 		if err != nil {
-			return nil, err
+			return err
+		}
+
+		if !keep {
+			continue
 		}
 
 		_, exists := gamemaster.Moves[move.ID]
 		if exists {
-			return nil, fmt.Errorf("%w: duplicate moveId %q", ErrGamemasterInvalid, move.ID)
+			return fmt.Errorf("%w: duplicate moveId %q", ErrGamemasterInvalid, move.ID)
 		}
 
 		gamemaster.Moves[move.ID] = move
 	}
 
-	return gamemaster, nil
+	return nil
 }
 
 // convertSpecies promotes one raw entry into a Species, reporting
@@ -228,22 +255,23 @@ func normaliseTypes(raw []string) []string {
 
 // convertMove promotes one raw move, inferring Category from the energy
 // fields. A move with a non-zero Energy cost is a charged move; a move
-// with a non-zero EnergyGain is fast. An entry with both columns zero or
-// both columns positive is rejected as malformed — the pvpoke gamemaster
-// never emits such rows, and letting them through to the battle engine
-// would only produce confusing late failures.
-func convertMove(index int, raw *moveRaw) (Move, error) {
+// with a non-zero EnergyGain is fast. An entry with both columns
+// positive is rejected as malformed. A move with both columns zero is
+// skipped — pvpoke's signature move TRANSFORM (Ditto) carries no energy
+// numbers because Ditto copies its target instead of attacking. The
+// third return value is false when the move must be silently dropped
+// from the gamemaster; callers should `continue` rather than insert it.
+func convertMove(index int, raw *moveRaw) (Move, bool, error) {
 	if raw.MoveID == "" {
-		return Move{}, fmt.Errorf("%w: moves[%d] missing moveId", ErrGamemasterInvalid, index)
+		return Move{}, false, fmt.Errorf("%w: moves[%d] missing moveId", ErrGamemasterInvalid, index)
 	}
 
 	if raw.Energy == 0 && raw.EnergyGain == 0 {
-		return Move{}, fmt.Errorf(
-			"%w: moves[%d] (%s) has neither energy nor energyGain", ErrGamemasterInvalid, index, raw.MoveID)
+		return Move{}, false, nil
 	}
 
 	if raw.Energy > 0 && raw.EnergyGain > 0 {
-		return Move{}, fmt.Errorf(
+		return Move{}, false, fmt.Errorf(
 			"%w: moves[%d] (%s) sets both energy=%d and energyGain=%d",
 			ErrGamemasterInvalid, index, raw.MoveID, raw.Energy, raw.EnergyGain,
 		)
@@ -264,5 +292,5 @@ func convertMove(index int, raw *moveRaw) (Move, error) {
 		Cooldown:   raw.Cooldown,
 		Turns:      raw.Turns,
 		Category:   category,
-	}, nil
+	}, true, nil
 }
