@@ -1,0 +1,683 @@
+{
+  "timestamp": "2026-04-14 18:14:43",
+  "id": "gamemaster",
+  "title": "Default",
+  "pokemon": [
+    {
+      "dex": 1,
+      "speciesName": "Bulbasaur",
+      "speciesId": "bulbasaur",
+      "baseStats": {
+        "atk": 118,
+        "def": 111,
+        "hp": 128
+      },
+      "types": [
+        "grass",
+        "poison"
+      ],
+      "fastMoves": [
+        "TACKLE",
+        "VINE_WHIP"
+      ],
+      "chargedMoves": [
+        "POWER_WHIP",
+        "SEED_BOMB",
+        "SLUDGE_BOMB"
+      ],
+      "tags": [
+        "starter",
+        "shadoweligible"
+      ],
+      "defaultIVs": {
+        "cp500": [
+          17.5,
+          3,
+          14,
+          12
+        ],
+        "cp1500": [
+          50,
+          15,
+          15,
+          15
+        ],
+        "cp2500": [
+          50,
+          15,
+          15,
+          15
+        ]
+      },
+      "level25CP": 627,
+      "buddyDistance": 3,
+      "thirdMoveCost": 10000,
+      "released": true,
+      "family": {
+        "id": "FAMILY_BULBASAUR",
+        "evolutions": [
+          "ivysaur"
+        ]
+      }
+    },
+    {
+      "dex": 68,
+      "speciesName": "Machamp",
+      "speciesId": "machamp",
+      "baseStats": {
+        "atk": 234,
+        "def": 159,
+        "hp": 207
+      },
+      "types": [
+        "fighting",
+        "none"
+      ],
+      "fastMoves": [
+        "BULLET_PUNCH",
+        "COUNTER",
+        "KARATE_CHOP"
+      ],
+      "chargedMoves": [
+        "CLOSE_COMBAT",
+        "CROSS_CHOP",
+        "DYNAMIC_PUNCH",
+        "HEAVY_SLAM",
+        "ROCK_SLIDE",
+        "STONE_EDGE",
+        "SUBMISSION",
+        "PAYBACK"
+      ],
+      "defaultIVs": {
+        "cp500": [
+          6.5,
+          4,
+          6,
+          5
+        ],
+        "cp1500": [
+          18,
+          5,
+          15,
+          12
+        ],
+        "cp2500": [
+          30,
+          4,
+          15,
+          14
+        ]
+      },
+      "eliteMoves": [
+        "KARATE_CHOP",
+        "STONE_EDGE",
+        "SUBMISSION",
+        "PAYBACK"
+      ],
+      "searchPriority": 3,
+      "level25CP": 1893,
+      "tags": [
+        "shadoweligible"
+      ],
+      "buddyDistance": 3,
+      "thirdMoveCost": 50000,
+      "released": true,
+      "family": {
+        "id": "FAMILY_MACHOP",
+        "parent": "machoke"
+      }
+    },
+    {
+      "dex": 184,
+      "speciesName": "Azumarill",
+      "speciesId": "azumarill",
+      "baseStats": {
+        "atk": 112,
+        "def": 152,
+        "hp": 225
+      },
+      "types": [
+        "water",
+        "fairy"
+      ],
+      "fastMoves": [
+        "BUBBLE",
+        "ROCK_SMASH"
+      ],
+      "chargedMoves": [
+        "HYDRO_PUMP",
+        "ICE_BEAM",
+        "PLAY_ROUGH"
+      ],
+      "defaultIVs": {
+        "cp500": [
+          12,
+          4,
+          15,
+          15
+        ],
+        "cp1500": [
+          43,
+          4,
+          15,
+          13
+        ],
+        "cp2500": [
+          50,
+          15,
+          15,
+          15
+        ],
+        "cp1500l40": [
+          38,
+          12,
+          14,
+          14
+        ]
+      },
+      "searchPriority": 48,
+      "buddyDistance": 3,
+      "thirdMoveCost": 50000,
+      "released": true,
+      "family": {
+        "id": "FAMILY_MARILL",
+        "parent": "marill"
+      }
+    },
+    {
+      "dex": 308,
+      "speciesName": "Medicham",
+      "speciesId": "medicham",
+      "baseStats": {
+        "atk": 121,
+        "def": 152,
+        "hp": 155
+      },
+      "types": [
+        "fighting",
+        "psychic"
+      ],
+      "fastMoves": [
+        "COUNTER",
+        "PSYCHO_CUT"
+      ],
+      "chargedMoves": [
+        "DYNAMIC_PUNCH",
+        "ICE_PUNCH",
+        "PSYCHIC",
+        "POWER_UP_PUNCH"
+      ],
+      "defaultIVs": {
+        "cp500": [
+          13.5,
+          4,
+          12,
+          13
+        ],
+        "cp1500": [
+          49,
+          7,
+          15,
+          14
+        ],
+        "cp2500": [
+          50,
+          15,
+          15,
+          15
+        ],
+        "cp1500l40": [
+          40,
+          15,
+          15,
+          15
+        ]
+      },
+      "searchPriority": 2,
+      "buddyDistance": 3,
+      "thirdMoveCost": 50000,
+      "released": true,
+      "family": {
+        "id": "FAMILY_MEDITITE",
+        "parent": "meditite"
+      }
+    },
+    {
+      "dex": 340,
+      "speciesName": "Whiscash",
+      "speciesId": "whiscash",
+      "baseStats": {
+        "atk": 151,
+        "def": 141,
+        "hp": 242
+      },
+      "types": [
+        "water",
+        "ground"
+      ],
+      "fastMoves": [
+        "MUD_SHOT",
+        "WATER_GUN"
+      ],
+      "chargedMoves": [
+        "BLIZZARD",
+        "MUD_BOMB",
+        "WATER_PULSE",
+        "SCALD"
+      ],
+      "defaultIVs": {
+        "cp500": [
+          9,
+          5,
+          15,
+          15
+        ],
+        "cp1500": [
+          27,
+          4,
+          15,
+          15
+        ],
+        "cp2500": [
+          50,
+          15,
+          15,
+          15
+        ]
+      },
+      "nicknames": [
+        "cash"
+      ],
+      "searchPriority": 4,
+      "buddyDistance": 1,
+      "thirdMoveCost": 10000,
+      "released": true,
+      "family": {
+        "id": "FAMILY_BARBOACH",
+        "parent": "barboach"
+      },
+      "level25CP": 1244,
+      "tags": [
+        "shadoweligible"
+      ]
+    }
+  ],
+  "moves": [
+    {
+      "moveId": "BLIZZARD",
+      "name": "Blizzard",
+      "abbreviation": "Bl",
+      "type": "ice",
+      "power": 140,
+      "energy": 75,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "Nuke",
+      "turns": 1
+    },
+    {
+      "moveId": "BUBBLE",
+      "name": "Bubble",
+      "type": "water",
+      "power": 8,
+      "energy": 0,
+      "energyGain": 11,
+      "cooldown": 1500,
+      "archetype": "Fast Charge",
+      "turns": 3
+    },
+    {
+      "moveId": "BULLET_PUNCH",
+      "name": "Bullet Punch",
+      "type": "steel",
+      "power": 7,
+      "energy": 0,
+      "energyGain": 7,
+      "cooldown": 1000,
+      "archetype": "General",
+      "turns": 2
+    },
+    {
+      "moveId": "CLOSE_COMBAT",
+      "name": "Close Combat",
+      "type": "fighting",
+      "power": 100,
+      "energy": 45,
+      "energyGain": 0,
+      "cooldown": 500,
+      "buffs": [
+        0,
+        -2
+      ],
+      "buffTarget": "self",
+      "buffApplyChance": "1",
+      "archetype": "Self-Debuff",
+      "turns": 1
+    },
+    {
+      "moveId": "COUNTER",
+      "name": "Counter",
+      "abbreviation": "C",
+      "type": "fighting",
+      "power": 8,
+      "energy": 0,
+      "energyGain": 6,
+      "cooldown": 1000,
+      "archetype": "Multipurpose",
+      "turns": 2
+    },
+    {
+      "moveId": "CROSS_CHOP",
+      "name": "Cross Chop",
+      "abbreviation": "CrC",
+      "type": "fighting",
+      "power": 55,
+      "energy": 35,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "Spam/Bait",
+      "turns": 1
+    },
+    {
+      "moveId": "DYNAMIC_PUNCH",
+      "name": "Dynamic Punch",
+      "abbreviation": "DyP",
+      "type": "fighting",
+      "power": 90,
+      "energy": 45,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    },
+    {
+      "moveId": "HEAVY_SLAM",
+      "name": "Heavy Slam",
+      "type": "steel",
+      "power": 70,
+      "energy": 50,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    },
+    {
+      "moveId": "HYDRO_PUMP",
+      "name": "Hydro Pump",
+      "type": "water",
+      "power": 130,
+      "energy": 75,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "Nuke",
+      "turns": 1
+    },
+    {
+      "moveId": "ICE_BEAM",
+      "name": "Ice Beam",
+      "type": "ice",
+      "power": 90,
+      "energy": 55,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "High Energy",
+      "turns": 1
+    },
+    {
+      "moveId": "ICE_PUNCH",
+      "name": "Ice Punch",
+      "type": "ice",
+      "power": 60,
+      "energy": 40,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "Spam/Bait",
+      "turns": 1
+    },
+    {
+      "moveId": "KARATE_CHOP",
+      "name": "Karate Chop",
+      "type": "fighting",
+      "power": 5,
+      "energy": 0,
+      "energyGain": 9,
+      "cooldown": 1000,
+      "archetype": "Fast Charge",
+      "turns": 2
+    },
+    {
+      "moveId": "MUD_BOMB",
+      "name": "Mud Bomb",
+      "type": "ground",
+      "power": 65,
+      "energy": 45,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    },
+    {
+      "moveId": "MUD_SHOT",
+      "name": "Mud Shot",
+      "type": "ground",
+      "power": 3,
+      "energy": 0,
+      "energyGain": 9,
+      "cooldown": 1000,
+      "archetype": "Fast Charge",
+      "turns": 2
+    },
+    {
+      "moveId": "PAYBACK",
+      "name": "Payback",
+      "abbreviation": "Pbk",
+      "type": "dark",
+      "power": 110,
+      "energy": 60,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "Nuke",
+      "turns": 1
+    },
+    {
+      "moveId": "PLAY_ROUGH",
+      "name": "Play Rough",
+      "type": "fairy",
+      "power": 90,
+      "energy": 60,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "High Energy",
+      "turns": 1
+    },
+    {
+      "moveId": "POWER_UP_PUNCH",
+      "name": "Power-Up Punch",
+      "type": "fighting",
+      "power": 20,
+      "energy": 35,
+      "energyGain": 0,
+      "cooldown": 500,
+      "buffs": [
+        1,
+        0
+      ],
+      "buffTarget": "self",
+      "buffApplyChance": "1",
+      "archetype": "Boost Spam",
+      "turns": 1
+    },
+    {
+      "moveId": "POWER_WHIP",
+      "name": "Power Whip",
+      "type": "grass",
+      "power": 90,
+      "energy": 50,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    },
+    {
+      "moveId": "PSYCHIC",
+      "name": "Psychic",
+      "type": "psychic",
+      "power": 75,
+      "energy": 55,
+      "energyGain": 0,
+      "cooldown": 500,
+      "buffs": [
+        0,
+        -1
+      ],
+      "buffTarget": "opponent",
+      "buffApplyChance": ".1",
+      "archetype": "High Energy",
+      "turns": 1
+    },
+    {
+      "moveId": "PSYCHO_CUT",
+      "name": "Psycho Cut",
+      "type": "psychic",
+      "power": 4,
+      "energy": 0,
+      "energyGain": 9,
+      "cooldown": 1000,
+      "archetype": "Fast Charge",
+      "turns": 2
+    },
+    {
+      "moveId": "ROCK_SLIDE",
+      "name": "Rock Slide",
+      "type": "rock",
+      "power": 75,
+      "energy": 45,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    },
+    {
+      "moveId": "ROCK_SMASH",
+      "name": "Rock Smash",
+      "abbreviation": "RSm",
+      "type": "fighting",
+      "power": 9,
+      "energy": 0,
+      "energyGain": 7,
+      "cooldown": 1500,
+      "archetype": "Low Quality",
+      "turns": 3
+    },
+    {
+      "moveId": "SCALD",
+      "name": "Scald",
+      "abbreviation": "Sc",
+      "type": "water",
+      "power": 85,
+      "energy": 50,
+      "energyGain": 0,
+      "cooldown": 500,
+      "buffs": [
+        -1,
+        0
+      ],
+      "buffTarget": "opponent",
+      "buffApplyChance": "0.3",
+      "archetype": "Debuff",
+      "turns": 1
+    },
+    {
+      "moveId": "SEED_BOMB",
+      "name": "Seed Bomb",
+      "abbreviation": "SeB",
+      "type": "grass",
+      "power": 55,
+      "energy": 40,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "Spam/Bait",
+      "turns": 1
+    },
+    {
+      "moveId": "SLUDGE_BOMB",
+      "name": "Sludge Bomb",
+      "abbreviation": "SlB",
+      "type": "poison",
+      "power": 80,
+      "energy": 50,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    },
+    {
+      "moveId": "STONE_EDGE",
+      "name": "Stone Edge",
+      "type": "rock",
+      "power": 100,
+      "energy": 55,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "Nuke",
+      "turns": 1
+    },
+    {
+      "moveId": "SUBMISSION",
+      "name": "Submission",
+      "abbreviation": "Sm",
+      "type": "fighting",
+      "power": 60,
+      "energy": 50,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    },
+    {
+      "moveId": "TACKLE",
+      "name": "Tackle",
+      "abbreviation": "Tk",
+      "type": "normal",
+      "power": 3,
+      "energy": 0,
+      "energyGain": 3,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    },
+    {
+      "moveId": "VINE_WHIP",
+      "name": "Vine Whip",
+      "type": "grass",
+      "power": 5,
+      "energy": 0,
+      "energyGain": 8,
+      "cooldown": 1000,
+      "archetype": "Fast Charge",
+      "turns": 2
+    },
+    {
+      "moveId": "WATER_GUN",
+      "name": "Water Gun",
+      "type": "water",
+      "power": 3,
+      "energy": 0,
+      "energyGain": 3,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    },
+    {
+      "moveId": "WATER_PULSE",
+      "name": "Water Pulse",
+      "type": "water",
+      "power": 80,
+      "energy": 50,
+      "energyGain": 0,
+      "cooldown": 500,
+      "archetype": "General",
+      "turns": 1
+    }
+  ]
+}
