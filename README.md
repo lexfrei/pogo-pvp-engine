@@ -5,12 +5,21 @@ math. Intended as the engine layer for MCP servers, Discord bots, CLIs, or
 any other consumer that needs accurate 1v1 PvP outcomes without pulling in a
 JavaScript runtime.
 
-**Status**: early development. Foundation types and math are being
-landed: `IV`, `Pokemon`, `Form`, `BaseStats`, `Stats`, `ComputeStats`,
-`ComputeCP`, `ComputeStatProduct`, `CPMAt`, `Gamemaster`, `Species`,
-`Move`, `ParseGamemaster`. Battle simulation, AI, ranker, and IV-finder
-are still pending. No tagged release exists yet; the import path is not
-guaranteed stable until the first semver tag.
+**Status**: early development. Currently implemented: foundation types
+and math (`IV`, `Pokemon`, `Form`, `BaseStats`, `Stats`, `ComputeStats`,
+`ComputeCP`, `ComputeStatProduct`, `CPMAt`), gamemaster parser
+(`Gamemaster`, `Species`, `Move`, `ParseGamemaster`), PvP damage
+(`TypeEffectiveness`, `StabFactor`, `CalcDamage`), a simplified 1v1
+battle simulator (`Simulate`, `Combatant`, `BattleOptions`,
+`BattleResult`), and a pure stat-product IV/level optimizer
+(`FindOptimalSpread`, `FindSpreadOpts`, `OptimalSpread`).
+
+Battle simulator caveats: no Charge-Move-Priority on simultaneous
+throws, no shadow Atk/Def scaling, fast-damage resolves before charged
+throws on the shared tick. These gaps will close before the full
+ranker lands. A matchup-weighted ranker is still pending. No tagged
+release exists yet; the import path is not guaranteed stable until the
+first semver tag.
 
 ## Disclaimer
 
