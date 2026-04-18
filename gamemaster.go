@@ -190,12 +190,19 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 		)
 	}
 
+	types := normaliseTypes(raw.Types)
+	if len(types) == 0 {
+		return Species{}, fmt.Errorf(
+			"%w: pokemon[%d] (%s) has no real types after normalisation (raw=%v)",
+			ErrGamemasterInvalid, index, raw.SpeciesID, raw.Types)
+	}
+
 	return Species{
 		Dex:          raw.Dex,
 		ID:           raw.SpeciesID,
 		Name:         raw.SpeciesName,
 		BaseStats:    BaseStats{Atk: raw.BaseStats.Atk, Def: raw.BaseStats.Def, HP: raw.BaseStats.HP},
-		Types:        normaliseTypes(raw.Types),
+		Types:        types,
 		FastMoves:    raw.FastMoves,
 		ChargedMoves: raw.ChargedMoves,
 		Tags:         raw.Tags,

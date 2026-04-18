@@ -281,6 +281,21 @@ func TestParseGamemaster_MonotypeNormalisation(t *testing.T) {
 	}
 }
 
+func TestParseGamemaster_EmptyTypesAfterNormalise(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[` +
+		`{"dex":1,"speciesId":"foo","baseStats":{"atk":1,"def":1,"hp":1},"types":["none","none"]}` +
+		`],"moves":[]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with all-placeholder types expected error")
+	}
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+	}
+}
+
 func TestParseGamemaster_MoveWithNoEnergy(t *testing.T) {
 	t.Parallel()
 
