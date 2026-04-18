@@ -20,7 +20,8 @@ var ErrIVOutOfRange = errors.New("iv out of range")
 
 // IV is an individual-values triple for a single Pokémon. Each field is
 // bounded to [0, MaxIV]; construct instances through [NewIV] or [MustNewIV]
-// to enforce that invariant.
+// to enforce that invariant. Callers that build IV literals directly
+// should run [IV.Valid] before handing the value to other engine APIs.
 type IV struct {
 	Atk uint8
 	Def uint8
@@ -57,6 +58,13 @@ func MustNewIV(atk, def, sta int) IV {
 	}
 
 	return iv
+}
+
+// Valid reports whether every component is inside [0, MaxIV]. Because the
+// fields are uint8 the lower bound is automatic; the method guards against
+// literal IV{Atk: 200} constructions that bypass [NewIV].
+func (iv IV) Valid() bool {
+	return iv.Atk <= MaxIV && iv.Def <= MaxIV && iv.Sta <= MaxIV
 }
 
 // toIVComponent validates that value is in [0, MaxIV] and narrows it to

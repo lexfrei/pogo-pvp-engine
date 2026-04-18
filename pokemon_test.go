@@ -158,3 +158,33 @@ func TestNewPokemon_Invalid(t *testing.T) {
 		})
 	}
 }
+
+// TestNewPokemon_RejectsOutOfRangeIV verifies that literal IV construction
+// bypassing NewIV is caught by NewPokemon. Without this guard, callers
+// could smuggle IV{Atk: 200} into the engine and corrupt stat / CP math.
+func TestNewPokemon_RejectsOutOfRangeIV(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		iv   pogopvp.IV
+	}{
+		{"atk over max", pogopvp.IV{Atk: 200, Def: 0, Sta: 0}},
+		{"def over max", pogopvp.IV{Atk: 0, Def: 16, Sta: 0}},
+		{"sta over max", pogopvp.IV{Atk: 0, Def: 0, Sta: 255}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := pogopvp.NewPokemon("medicham", pogopvp.FormRegular, tc.iv, 40.0, false)
+			if err == nil {
+				t.Fatal("NewPokemon expected error for out-of-range IV, got nil")
+			}
+			if !errors.Is(err, pogopvp.ErrIVOutOfRange) {
+				t.Errorf("NewPokemon error = %v, want wrapping ErrIVOutOfRange", err)
+			}
+		})
+	}
+}

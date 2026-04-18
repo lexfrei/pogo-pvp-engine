@@ -114,6 +114,10 @@ func NewPokemon(speciesID string, form Form, iv IV, level float64, hasXL bool) (
 		return Pokemon{}, fmt.Errorf("%w: %d", ErrInvalidForm, uint8(form))
 	}
 
+	if !iv.Valid() {
+		return Pokemon{}, fmt.Errorf("%w: IV{%d,%d,%d}", ErrIVOutOfRange, iv.Atk, iv.Def, iv.Sta)
+	}
+
 	err := validateLevel(level, hasXL)
 	if err != nil {
 		return Pokemon{}, err

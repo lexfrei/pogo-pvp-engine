@@ -96,3 +96,29 @@ func TestMustNewIV_NoPanicOnValid(t *testing.T) {
 		t.Errorf("MustNewIV(15, 15, 15) = %+v, want {15, 15, 15}", iv)
 	}
 }
+
+func TestIV_Valid(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		iv   pogopvp.IV
+		want bool
+	}{
+		{"zero value", pogopvp.IV{}, true},
+		{"all max", pogopvp.IV{Atk: 15, Def: 15, Sta: 15}, true},
+		{"atk over max", pogopvp.IV{Atk: 16, Def: 0, Sta: 0}, false},
+		{"def over max", pogopvp.IV{Atk: 0, Def: 200, Sta: 0}, false},
+		{"sta over max", pogopvp.IV{Atk: 0, Def: 0, Sta: 255}, false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := tc.iv.Valid(); got != tc.want {
+				t.Errorf("IV%+v.Valid() = %v, want %v", tc.iv, got, tc.want)
+			}
+		})
+	}
+}
