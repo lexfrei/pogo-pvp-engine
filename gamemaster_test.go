@@ -296,18 +296,32 @@ func TestParseGamemaster_EmptyTypesAfterNormalise(t *testing.T) {
 	}
 }
 
+// TestParseGamemaster_MoveWithNoEnergy pins the TRANSFORM-style skip
+// behaviour: a move with neither energy nor energyGain (Ditto's
+// signature move in the upstream pvpoke gamemaster) is silently
+// dropped from the indexed output rather than failing the whole load.
+// Rejecting would block every pvpoke-sourced gamemaster from parsing.
 func TestParseGamemaster_MoveWithNoEnergy(t *testing.T) {
 	t.Parallel()
 
 	raw := `{"id":"gamemaster","pokemon":[],"moves":[` +
-		`{"moveId":"BROKEN","name":"Broken","type":"normal","power":1,"energy":0,"energyGain":0,"turns":2}` +
+		`{"moveId":"TRANSFORM","name":"Transform","type":"normal","power":0,"energy":0,"energyGain":0,"turns":0},` +
+		`{"moveId":"COUNTER","name":"Counter","type":"fighting","power":8,"energy":0,"energyGain":7,` +
+		`"cooldown":1000,"turns":2}` +
 		`]}`
-	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
-	if err == nil {
-		t.Fatal("ParseGamemaster with zero-energy move expected error")
+	gm, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err != nil {
+		t.Fatalf("ParseGamemaster with TRANSFORM-style move: unexpected error %v", err)
 	}
-	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
-		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+
+	_, transformPresent := gm.Moves["TRANSFORM"]
+	if transformPresent {
+		t.Errorf("TRANSFORM-style move leaked into gamemaster.Moves, expected silent drop")
+	}
+
+	_, counterPresent := gm.Moves["COUNTER"]
+	if !counterPresent {
+		t.Errorf("COUNTER missing from gamemaster.Moves, regular moves must still load")
 	}
 }
 
