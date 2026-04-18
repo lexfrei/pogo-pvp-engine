@@ -139,7 +139,11 @@ func TestComputeStatProduct_MonotonicInIV(t *testing.T) {
 	// increase as IVs rise. Holding defense and stamina at 15, sweep
 	// attack from 0 to 15.
 	base := pogopvp.BaseStats{Atk: 150, Def: 150, HP: 200}
-	cpm := 0.7317003147125 // level 30
+
+	cpm, err := pogopvp.CPMAt(30.0)
+	if err != nil {
+		t.Fatalf("CPMAt(30.0) returned error: %v", err)
+	}
 
 	var prev float64
 	for atk := 0; atk <= pogopvp.MaxIV; atk++ {

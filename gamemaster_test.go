@@ -25,16 +25,25 @@ func loadSampleGamemaster(t *testing.T) *pogopvp.Gamemaster {
 	return gm
 }
 
+// The testdata sample is a fixed subset (5 Pokémon — bulbasaur, medicham,
+// whiscash, machamp, azumarill — plus all the moves they reference). These
+// counts are exact, not floors; if the fixture is regenerated the counts
+// move with it.
+const (
+	sampleExpectedPokemonCount = 5
+	sampleExpectedMovesCount   = 31
+)
+
 func TestParseGamemaster_SampleCounts(t *testing.T) {
 	t.Parallel()
 
 	gm := loadSampleGamemaster(t)
 
-	if len(gm.Pokemon) < 3 {
-		t.Errorf("Pokemon count = %d, want at least 3", len(gm.Pokemon))
+	if len(gm.Pokemon) != sampleExpectedPokemonCount {
+		t.Errorf("Pokemon count = %d, want %d", len(gm.Pokemon), sampleExpectedPokemonCount)
 	}
-	if len(gm.Moves) < 3 {
-		t.Errorf("Moves count = %d, want at least 3", len(gm.Moves))
+	if len(gm.Moves) != sampleExpectedMovesCount {
+		t.Errorf("Moves count = %d, want %d", len(gm.Moves), sampleExpectedMovesCount)
 	}
 }
 
@@ -133,6 +142,9 @@ func TestParseGamemaster_EmptyInput(t *testing.T) {
 	if err == nil {
 		t.Fatal("ParseGamemaster on empty input expected error")
 	}
+	if !errors.Is(err, pogopvp.ErrGamemasterDecode) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterDecode", err)
+	}
 }
 
 func TestParseGamemaster_MalformedJSON(t *testing.T) {
@@ -150,7 +162,9 @@ func TestParseGamemaster_MalformedJSON(t *testing.T) {
 func TestParseGamemaster_MissingPokemonID(t *testing.T) {
 	t.Parallel()
 
-	raw := `{"pokemon":[{"dex":1,"speciesName":"x","baseStats":{"atk":1,"def":1,"hp":1},"types":["fire","fire"]}],"moves":[]}`
+	raw := `{"id":"gamemaster","pokemon":[` +
+		`{"dex":1,"speciesName":"x","baseStats":{"atk":1,"def":1,"hp":1},"types":["fire","fire"]}` +
+		`],"moves":[]}`
 	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
 	if err == nil {
 		t.Fatal("ParseGamemaster with missing speciesId expected error")
@@ -163,13 +177,39 @@ func TestParseGamemaster_MissingPokemonID(t *testing.T) {
 func TestParseGamemaster_DuplicatePokemon(t *testing.T) {
 	t.Parallel()
 
-	raw := `{"pokemon":[` +
+	raw := `{"id":"gamemaster","pokemon":[` +
 		`{"dex":1,"speciesId":"foo","speciesName":"Foo","baseStats":{"atk":1,"def":1,"hp":1},"types":["fire","fire"],"released":true},` +
 		`{"dex":2,"speciesId":"foo","speciesName":"FooDup","baseStats":{"atk":2,"def":2,"hp":2},"types":["water","water"],"released":true}` +
 		`],"moves":[]}`
 	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
 	if err == nil {
 		t.Fatal("ParseGamemaster with duplicate speciesId expected error")
+	}
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+	}
+}
+
+func TestParseGamemaster_WrongDocumentID(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"rankings","pokemon":[],"moves":[]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with wrong document id expected error")
+	}
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+	}
+}
+
+func TestParseGamemaster_MissingDocumentID(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"pokemon":[],"moves":[]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with missing document id expected error")
 	}
 	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
 		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)

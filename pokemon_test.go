@@ -140,7 +140,8 @@ func TestNewPokemon_Invalid(t *testing.T) {
 		{"level above max", "whiscash", pogopvp.FormRegular, 51.5, true, pogopvp.ErrInvalidLevel},
 		{"non-half level", "whiscash", pogopvp.FormRegular, 40.25, false, pogopvp.ErrInvalidLevel},
 		{"non-xl above 40 without xl true", "whiscash", pogopvp.FormRegular, 41.5, false, pogopvp.ErrInvalidLevel},
-		{"unknown form value", "whiscash", pogopvp.Form(99), 40.0, false, pogopvp.ErrInvalidForm},
+		{"unknown form value far", "whiscash", pogopvp.Form(99), 40.0, false, pogopvp.ErrInvalidForm},
+		{"unknown form value boundary", "whiscash", pogopvp.Form(3), 40.0, false, pogopvp.ErrInvalidForm},
 	}
 
 	for _, tc := range cases {

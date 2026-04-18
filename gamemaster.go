@@ -61,8 +61,15 @@ type Gamemaster struct {
 var ErrGamemasterDecode = errors.New("gamemaster decode error")
 
 // ErrGamemasterInvalid flags semantic violations (missing required fields,
-// duplicate IDs) in an otherwise syntactically valid payload.
+// duplicate IDs, wrong document id) in an otherwise syntactically valid
+// payload.
 var ErrGamemasterInvalid = errors.New("gamemaster invalid")
+
+// gamemasterDocumentID is the expected value of the top-level "id" field in
+// a pvpoke gamemaster.json. It guards against accidentally feeding an
+// unrelated JSON document (rankings, format lists, cup configs) through the
+// parser.
+const gamemasterDocumentID = "gamemaster"
 
 // gamemasterRaw mirrors the on-disk gamemaster JSON layout; only the fields
 // the engine actually reads are represented. Unknown fields are ignored.
@@ -114,6 +121,11 @@ func ParseGamemaster(reader io.Reader) (*Gamemaster, error) {
 	err := decoder.Decode(&raw)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrGamemasterDecode, err)
+	}
+
+	if raw.ID != gamemasterDocumentID {
+		return nil, fmt.Errorf("%w: expected document id %q, got %q",
+			ErrGamemasterInvalid, gamemasterDocumentID, raw.ID)
 	}
 
 	gamemaster := &Gamemaster{

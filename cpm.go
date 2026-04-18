@@ -59,6 +59,8 @@ func CPMAt(level float64) (float64, error) {
 		return 0, fmt.Errorf("%w: %.2f is not on the 0.5 grid", ErrInvalidLevel, level)
 	}
 
+	// Guaranteed safe: level ∈ [1.0, 51.0] on the 0.5 grid means
+	// doubled ∈ [2, 102], so index ∈ [0, 100] — inside cpmTable's 101 slots.
 	index := int(doubled) - 2
 
 	return cpmTable[index], nil
