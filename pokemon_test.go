@@ -2,6 +2,7 @@ package pogopvp_test
 
 import (
 	"errors"
+	"math"
 	"testing"
 
 	pogopvp "github.com/lexfrei/pogo-pvp-engine"
@@ -156,6 +157,19 @@ func TestNewPokemon_Invalid(t *testing.T) {
 				t.Errorf("NewPokemon error = %v, want wrapping %v", err, tc.target)
 			}
 		})
+	}
+}
+
+func TestNewPokemon_RejectsNaNLevel(t *testing.T) {
+	t.Parallel()
+
+	iv := pogopvp.MustNewIV(0, 15, 15)
+	_, err := pogopvp.NewPokemon("whiscash", pogopvp.FormRegular, iv, math.NaN(), false)
+	if err == nil {
+		t.Fatal("NewPokemon with NaN level expected error")
+	}
+	if !errors.Is(err, pogopvp.ErrInvalidLevel) {
+		t.Errorf("NewPokemon error = %v, want wrapping ErrInvalidLevel", err)
 	}
 }
 

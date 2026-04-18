@@ -5,13 +5,12 @@ math. Intended as the engine layer for MCP servers, Discord bots, CLIs, or
 any other consumer that needs accurate 1v1 PvP outcomes without pulling in a
 JavaScript runtime.
 
-**Status**: early development. Phase 1 is complete — foundation types and
-math are available (`IV`, `Pokemon`, `Form`, `BaseStats`, `Stats`,
-`ComputeStats`, `ComputeCP`, `ComputeStatProduct`, `CPMAt`, `Gamemaster`,
-`Species`, `Move`, `ParseGamemaster`). Battle simulation, AI, ranker, and
-IV-finder are still pending. No tagged release yet, and the repository is
-not yet published to GitHub, so `go get github.com/lexfrei/pogo-pvp-engine`
-does not resolve.
+**Status**: early development. Foundation types and math are being
+landed: `IV`, `Pokemon`, `Form`, `BaseStats`, `Stats`, `ComputeStats`,
+`ComputeCP`, `ComputeStatProduct`, `CPMAt`, `Gamemaster`, `Species`,
+`Move`, `ParseGamemaster`. Battle simulation, AI, ranker, and IV-finder
+are still pending. No tagged release exists yet; the import path is not
+guaranteed stable until the first semver tag.
 
 ## Disclaimer
 

@@ -93,7 +93,10 @@ const NoXLMaxLevel = 40.0
 
 // Pokemon identifies a single PvP combatant: the species the moves apply to,
 // the IV triple, the level (in 0.5 increments), the release form, and
-// whether XL candy has been used to push past NoXLMaxLevel.
+// whether XL candy has been used to push past NoXLMaxLevel. The XL flag
+// tracks candy state and may be true at any level; it only becomes a hard
+// constraint when the level exceeds [NoXLMaxLevel], in which case
+// [NewPokemon] requires XL=true.
 type Pokemon struct {
 	SpeciesID string
 	Form      Form
@@ -111,11 +114,11 @@ func NewPokemon(speciesID string, form Form, iv IV, level float64, hasXL bool) (
 	}
 
 	if !isKnownForm(form) {
-		return Pokemon{}, fmt.Errorf("%w: %d", ErrInvalidForm, uint8(form))
+		return Pokemon{}, fmt.Errorf("%w: %s", ErrInvalidForm, form)
 	}
 
 	if !iv.Valid() {
-		return Pokemon{}, fmt.Errorf("%w: IV{%d,%d,%d}", ErrIVOutOfRange, iv.Atk, iv.Def, iv.Sta)
+		return Pokemon{}, fmt.Errorf("%w: %+v", ErrIVOutOfRange, iv)
 	}
 
 	err := validateLevel(level, hasXL)
@@ -134,7 +137,13 @@ func NewPokemon(speciesID string, form Form, iv IV, level float64, hasXL bool) (
 
 // validateLevel checks that level lies on the half-integer grid inside the
 // allowed range and that levels above NoXLMaxLevel are accompanied by XL.
+// NaN is rejected explicitly so the grid check (which relies on NaN != x)
+// cannot become the load-bearing defence.
 func validateLevel(level float64, hasXL bool) error {
+	if math.IsNaN(level) {
+		return fmt.Errorf("%w: NaN", ErrInvalidLevel)
+	}
+
 	if level < MinLevel || level > MaxLevel {
 		return fmt.Errorf("%w: %.2f outside [%.1f, %.1f]", ErrInvalidLevel, level, MinLevel, MaxLevel)
 	}

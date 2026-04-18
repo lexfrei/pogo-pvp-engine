@@ -3,6 +3,7 @@ package pogopvp_test
 import (
 	"errors"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -67,16 +68,16 @@ func TestParseGamemaster_PokemonFields(t *testing.T) {
 		t.Errorf("bulbasaur BaseStats = %+v, want {118, 111, 128}", bulb.BaseStats)
 	}
 	wantTypes := []string{"grass", "poison"}
-	if !equalStrings(bulb.Types, wantTypes) {
+	if !slices.Equal(bulb.Types, wantTypes) {
 		t.Errorf("bulbasaur Types = %v, want %v", bulb.Types, wantTypes)
 	}
 	if !bulb.Released {
 		t.Error("bulbasaur Released = false, want true")
 	}
-	if !contains(bulb.FastMoves, "VINE_WHIP") {
+	if !slices.Contains(bulb.FastMoves, "VINE_WHIP") {
 		t.Errorf("bulbasaur FastMoves = %v, want to contain VINE_WHIP", bulb.FastMoves)
 	}
-	if !contains(bulb.ChargedMoves, "SLUDGE_BOMB") {
+	if !slices.Contains(bulb.ChargedMoves, "SLUDGE_BOMB") {
 		t.Errorf("bulbasaur ChargedMoves = %v, want to contain SLUDGE_BOMB", bulb.ChargedMoves)
 	}
 }
@@ -216,23 +217,96 @@ func TestParseGamemaster_MissingDocumentID(t *testing.T) {
 	}
 }
 
-func contains(haystack []string, needle string) bool {
-	for _, candidate := range haystack {
-		if candidate == needle {
-			return true
-		}
+func TestParseGamemaster_ZeroBaseStats(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[` +
+		`{"dex":1,"speciesId":"foo","baseStats":{"atk":0,"def":1,"hp":1},"types":["fire","fire"]}` +
+		`],"moves":[]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with zero baseStats expected error")
 	}
-	return false
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+	}
 }
 
-func equalStrings(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
+func TestParseGamemaster_NegativeBaseStats(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[` +
+		`{"dex":1,"speciesId":"foo","baseStats":{"atk":1,"def":-5,"hp":1},"types":["fire","fire"]}` +
+		`],"moves":[]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with negative baseStats expected error")
 	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
 	}
-	return true
+}
+
+func TestParseGamemaster_ZeroDex(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[` +
+		`{"dex":0,"speciesId":"foo","baseStats":{"atk":1,"def":1,"hp":1},"types":["fire","fire"]}` +
+		`],"moves":[]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with dex<1 expected error")
+	}
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+	}
+}
+
+// TestParseGamemaster_MonotypeNormalisation verifies that the pvpoke
+// placeholder "none" used for monotype Pokemon is stripped from the parsed
+// Species.Types so consumers only see real type identifiers.
+func TestParseGamemaster_MonotypeNormalisation(t *testing.T) {
+	t.Parallel()
+
+	gm := loadSampleGamemaster(t)
+
+	machamp, ok := gm.Pokemon["machamp"]
+	if !ok {
+		t.Fatal("machamp missing from parsed Pokemon map")
+	}
+
+	wantTypes := []string{"fighting"}
+	if !slices.Equal(machamp.Types, wantTypes) {
+		t.Errorf("machamp Types = %v, want %v", machamp.Types, wantTypes)
+	}
+}
+
+func TestParseGamemaster_MoveWithNoEnergy(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[],"moves":[` +
+		`{"moveId":"BROKEN","name":"Broken","type":"normal","power":1,"energy":0,"energyGain":0,"turns":2}` +
+		`]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with zero-energy move expected error")
+	}
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+	}
+}
+
+func TestParseGamemaster_MoveWithBothEnergyAndGain(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[],"moves":[` +
+		`{"moveId":"BROKEN","name":"Broken","type":"normal","power":1,"energy":50,"energyGain":8,"turns":2}` +
+		`]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with conflicting energy fields expected error")
+	}
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+	}
 }

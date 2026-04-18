@@ -166,10 +166,28 @@ func ParseGamemaster(reader io.Reader) (*Gamemaster, error) {
 }
 
 // convertSpecies promotes one raw entry into a Species, reporting
-// ErrGamemasterInvalid on missing required fields.
+// ErrGamemasterInvalid on missing required fields. Base stats must be
+// strictly positive and the dex number must be at least 1 — the pvpoke
+// gamemaster never violates this, so anything weaker is a corrupted row
+// and we fail loudly rather than produce CP-10 ghost creatures downstream.
+// The pvpoke "none" placeholder in the types slice is normalised away
+// here so Species.Types contains only real type identifiers.
 func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 	if raw.SpeciesID == "" {
 		return Species{}, fmt.Errorf("%w: pokemon[%d] missing speciesId", ErrGamemasterInvalid, index)
+	}
+
+	if raw.Dex < 1 {
+		return Species{}, fmt.Errorf("%w: pokemon[%d] (%s) dex=%d < 1",
+			ErrGamemasterInvalid, index, raw.SpeciesID, raw.Dex)
+	}
+
+	if raw.BaseStats.Atk <= 0 || raw.BaseStats.Def <= 0 || raw.BaseStats.HP <= 0 {
+		return Species{}, fmt.Errorf(
+			"%w: pokemon[%d] (%s) non-positive baseStats atk=%d def=%d hp=%d",
+			ErrGamemasterInvalid, index, raw.SpeciesID,
+			raw.BaseStats.Atk, raw.BaseStats.Def, raw.BaseStats.HP,
+		)
 	}
 
 	return Species{
@@ -177,7 +195,7 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 		ID:           raw.SpeciesID,
 		Name:         raw.SpeciesName,
 		BaseStats:    BaseStats{Atk: raw.BaseStats.Atk, Def: raw.BaseStats.Def, HP: raw.BaseStats.HP},
-		Types:        raw.Types,
+		Types:        normaliseTypes(raw.Types),
 		FastMoves:    raw.FastMoves,
 		ChargedMoves: raw.ChargedMoves,
 		Tags:         raw.Tags,
@@ -185,12 +203,43 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 	}, nil
 }
 
+// normaliseTypes drops the pvpoke placeholder "none" and any empty strings,
+// returning a slice that only holds real type identifiers.
+func normaliseTypes(raw []string) []string {
+	result := make([]string, 0, len(raw))
+
+	for _, t := range raw {
+		if t == "" || t == "none" {
+			continue
+		}
+
+		result = append(result, t)
+	}
+
+	return result
+}
+
 // convertMove promotes one raw move, inferring Category from the energy
-// fields. A move with a non-zero Energy cost is a charged move; anything
-// else (including an explicit EnergyGain) is classified as fast.
+// fields. A move with a non-zero Energy cost is a charged move; a move
+// with a non-zero EnergyGain is fast. An entry with both columns zero or
+// both columns positive is rejected as malformed — the pvpoke gamemaster
+// never emits such rows, and letting them through to the battle engine
+// would only produce confusing late failures.
 func convertMove(index int, raw *moveRaw) (Move, error) {
 	if raw.MoveID == "" {
 		return Move{}, fmt.Errorf("%w: moves[%d] missing moveId", ErrGamemasterInvalid, index)
+	}
+
+	if raw.Energy == 0 && raw.EnergyGain == 0 {
+		return Move{}, fmt.Errorf(
+			"%w: moves[%d] (%s) has neither energy nor energyGain", ErrGamemasterInvalid, index, raw.MoveID)
+	}
+
+	if raw.Energy > 0 && raw.EnergyGain > 0 {
+		return Move{}, fmt.Errorf(
+			"%w: moves[%d] (%s) sets both energy=%d and energyGain=%d",
+			ErrGamemasterInvalid, index, raw.MoveID, raw.Energy, raw.EnergyGain,
+		)
 	}
 
 	category := MoveCategoryFast
