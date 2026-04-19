@@ -82,6 +82,70 @@ func TestParseGamemaster_PokemonFields(t *testing.T) {
 	}
 }
 
+// TestParseGamemaster_FamilyEvolutions confirms the family block is
+// decoded onto Species.Evolutions + PreEvolution: bulbasaur evolves
+// into ivysaur (no parent), medicham has a parent (meditite) but no
+// children.
+func TestParseGamemaster_FamilyEvolutions(t *testing.T) {
+	t.Parallel()
+
+	gm := loadSampleGamemaster(t)
+
+	bulb := gm.Pokemon["bulbasaur"]
+	if !slices.Equal(bulb.Evolutions, []string{"ivysaur"}) {
+		t.Errorf("bulbasaur Evolutions = %v, want [ivysaur]", bulb.Evolutions)
+	}
+	if bulb.PreEvolution != "" {
+		t.Errorf("bulbasaur PreEvolution = %q, want empty (base form)", bulb.PreEvolution)
+	}
+
+	medi := gm.Pokemon["medicham"]
+	if medi.PreEvolution != "meditite" {
+		t.Errorf("medicham PreEvolution = %q, want meditite", medi.PreEvolution)
+	}
+	if len(medi.Evolutions) != 0 {
+		t.Errorf("medicham Evolutions = %v, want empty (terminal form)", medi.Evolutions)
+	}
+}
+
+// TestParseGamemaster_LegacyMoves confirms the legacyMoves top-level
+// species field populates Species.LegacyMoves and IsLegacyMove answers
+// correctly per (species, move) — the same move id can be regular on
+// one species and legacy on another.
+func TestParseGamemaster_LegacyMoves(t *testing.T) {
+	t.Parallel()
+
+	gm := loadSampleGamemaster(t)
+
+	medi := gm.Pokemon["medicham"]
+	wantLegacy := []string{"POWER_UP_PUNCH", "PSYCHIC"}
+
+	if !slices.Equal(medi.LegacyMoves, wantLegacy) {
+		t.Errorf("medicham LegacyMoves = %v, want %v", medi.LegacyMoves, wantLegacy)
+	}
+
+	if !pogopvp.IsLegacyMove(&medi, "POWER_UP_PUNCH") {
+		t.Error("IsLegacyMove(medicham, POWER_UP_PUNCH) = false, want true")
+	}
+	if !pogopvp.IsLegacyMove(&medi, "PSYCHIC") {
+		t.Error("IsLegacyMove(medicham, PSYCHIC) = false, want true")
+	}
+	if pogopvp.IsLegacyMove(&medi, "COUNTER") {
+		t.Error("IsLegacyMove(medicham, COUNTER) = true, want false (regular)")
+	}
+
+	// Species without LegacyMoves must report false cleanly.
+	bulb := gm.Pokemon["bulbasaur"]
+	if pogopvp.IsLegacyMove(&bulb, "VINE_WHIP") {
+		t.Error("IsLegacyMove(bulbasaur, VINE_WHIP) = true, want false")
+	}
+
+	// Defensive path: nil species returns false, not a panic.
+	if pogopvp.IsLegacyMove(nil, "COUNTER") {
+		t.Error("IsLegacyMove(nil, COUNTER) = true, want false")
+	}
+}
+
 func TestParseGamemaster_FastMove(t *testing.T) {
 	t.Parallel()
 

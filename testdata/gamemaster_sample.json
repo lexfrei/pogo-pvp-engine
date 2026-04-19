@@ -207,6 +207,10 @@
         "PSYCHIC",
         "POWER_UP_PUNCH"
       ],
+      "legacyMoves": [
+        "POWER_UP_PUNCH",
+        "PSYCHIC"
+      ],
       "defaultIVs": {
         "cp500": [
           13.5,
