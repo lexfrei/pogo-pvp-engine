@@ -498,6 +498,41 @@ func TestParseGamemaster_Cups(t *testing.T) {
 	}
 }
 
+// TestParseGamemaster_ThirdMoveCost pins the thirdMoveCost field:
+// values in the fixture vary by species (bulbasaur=10000, medicham /
+// machamp / azumarill=50000, whiscash=10000). Absence in the payload
+// (ditto, eevee) surfaces as zero, not a decode failure.
+func TestParseGamemaster_ThirdMoveCost(t *testing.T) {
+	t.Parallel()
+
+	gm := loadSampleGamemaster(t)
+
+	bulb, ok := gm.Pokemon["bulbasaur"]
+	if !ok {
+		t.Fatal("bulbasaur missing")
+	}
+	if bulb.ThirdMoveCost != 10000 {
+		t.Errorf("bulbasaur ThirdMoveCost = %d, want 10000", bulb.ThirdMoveCost)
+	}
+
+	champ, ok := gm.Pokemon["machamp"]
+	if !ok {
+		t.Fatal("machamp missing")
+	}
+	if champ.ThirdMoveCost != 50000 {
+		t.Errorf("machamp ThirdMoveCost = %d, want 50000", champ.ThirdMoveCost)
+	}
+
+	ditto, ok := gm.Pokemon["ditto"]
+	if !ok {
+		t.Fatal("ditto missing")
+	}
+	if ditto.ThirdMoveCost != 0 {
+		t.Errorf("ditto ThirdMoveCost = %d, want 0 (absent from payload)",
+			ditto.ThirdMoveCost)
+	}
+}
+
 // TestParseGamemaster_CupEmptyNameRejected pins the validation:
 // a cup whose `name` is blank is rejected as ErrGamemasterInvalid
 // rather than silently indexed under the empty string.

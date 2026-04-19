@@ -57,6 +57,12 @@ type Species struct {
 	PreEvolution string
 	Tags         []string
 	Released     bool
+	// ThirdMoveCost is the stardust cost to unlock a third charged
+	// move slot on this species; candy cost is typically the same
+	// numeric value (pvpoke stores one field and clients duplicate
+	// it for both currencies). 0 for species that have not had the
+	// field published upstream.
+	ThirdMoveCost int
 }
 
 // Cup describes one pvpoke cup configuration: the rules for which
@@ -141,17 +147,18 @@ type cupFilterRaw struct {
 }
 
 type speciesRaw struct {
-	Dex          int          `json:"dex"`
-	SpeciesID    string       `json:"speciesId"`
-	SpeciesName  string       `json:"speciesName"`
-	BaseStats    baseStatsRaw `json:"baseStats"`
-	Types        []string     `json:"types"`
-	FastMoves    []string     `json:"fastMoves"`
-	ChargedMoves []string     `json:"chargedMoves"`
-	LegacyMoves  []string     `json:"legacyMoves"`
-	Family       *familyRaw   `json:"family"`
-	Tags         []string     `json:"tags"`
-	Released     bool         `json:"released"`
+	Dex           int          `json:"dex"`
+	SpeciesID     string       `json:"speciesId"`
+	SpeciesName   string       `json:"speciesName"`
+	BaseStats     baseStatsRaw `json:"baseStats"`
+	Types         []string     `json:"types"`
+	FastMoves     []string     `json:"fastMoves"`
+	ChargedMoves  []string     `json:"chargedMoves"`
+	LegacyMoves   []string     `json:"legacyMoves"`
+	Family        *familyRaw   `json:"family"`
+	Tags          []string     `json:"tags"`
+	Released      bool         `json:"released"`
+	ThirdMoveCost int          `json:"thirdMoveCost"`
 }
 
 // familyRaw mirrors the pvpoke `family` block on each species:
@@ -364,18 +371,19 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 	}
 
 	return Species{
-		Dex:          raw.Dex,
-		ID:           raw.SpeciesID,
-		Name:         raw.SpeciesName,
-		BaseStats:    BaseStats{Atk: raw.BaseStats.Atk, Def: raw.BaseStats.Def, HP: raw.BaseStats.HP},
-		Types:        types,
-		FastMoves:    raw.FastMoves,
-		ChargedMoves: raw.ChargedMoves,
-		LegacyMoves:  raw.LegacyMoves,
-		Evolutions:   evolutions,
-		PreEvolution: preEvolution,
-		Tags:         raw.Tags,
-		Released:     raw.Released,
+		Dex:           raw.Dex,
+		ID:            raw.SpeciesID,
+		Name:          raw.SpeciesName,
+		BaseStats:     BaseStats{Atk: raw.BaseStats.Atk, Def: raw.BaseStats.Def, HP: raw.BaseStats.HP},
+		Types:         types,
+		FastMoves:     raw.FastMoves,
+		ChargedMoves:  raw.ChargedMoves,
+		LegacyMoves:   raw.LegacyMoves,
+		Evolutions:    evolutions,
+		PreEvolution:  preEvolution,
+		Tags:          raw.Tags,
+		Released:      raw.Released,
+		ThirdMoveCost: raw.ThirdMoveCost,
 	}, nil
 }
 
