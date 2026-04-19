@@ -40,6 +40,17 @@ const shieldedDamage = 1
 // single battle: base stats + IV + level, types for STAB and effectiveness,
 // the fast move driving the cooldown loop, optional charged moves the AI
 // can fire when energy is sufficient, and the starting shield count.
+//
+// IsShadow applies Niantic's in-game shadow multipliers to the computed
+// ATK/DEF after CPM: ATK × 1.2 (shadowAtkMultiplier), DEF ÷ 1.2
+// (equivalently × shadowDefMultiplier). HP is unchanged. Setting IsShadow
+// alone does NOT redirect the species lookup — the caller still supplies
+// the shadow-form Species entry when one exists; the flag only controls
+// the numeric stat adjustment the simulator applies during a match.
+// Caller responsibilities differ by repo: pogo-pvp-mcp sets IsShadow
+// based on its Options.Shadow / species-id-suffix heuristics; direct
+// callers of this package should set IsShadow=true on shadow Pokémon
+// they want simulated with the in-game ATK/DEF behaviour.
 type Combatant struct {
 	Species      Species
 	IV           IV
@@ -47,6 +58,39 @@ type Combatant struct {
 	FastMove     Move
 	ChargedMoves []Move
 	Shields      int
+	IsShadow     bool
+}
+
+// shadowAtkMultiplier is the in-game offensive multiplier applied to
+// shadow Pokémon during PvP battles. Niantic introduced the 1.2× / ÷1.2
+// asymmetric adjustment in the October 2020 balance pass; pvpoke's
+// Battle.js implements it verbatim for parity with the official client.
+//
+//nolint:gochecknoglobals // domain constant; float literal cannot be const
+var shadowAtkMultiplier = 1.2
+
+// shadowDefMultiplier is the in-game defensive multiplier (1/1.2)
+// applied to shadow Pokémon. Expressed as a reciprocal constant so the
+// stat adjustment reads as a single multiplication rather than a
+// division — matches pvpoke's convention.
+//
+//nolint:gochecknoglobals // domain constant; float literal cannot be const
+var shadowDefMultiplier = 1.0 / 1.2
+
+// applyShadowMultipliers returns stats with the in-game shadow ATK /
+// DEF adjustment applied when isShadow is true, or the input stats
+// unchanged otherwise. HP is not affected by shadow status in Pokémon
+// GO's formula.
+func applyShadowMultipliers(stats Stats, isShadow bool) Stats {
+	if !isShadow {
+		return stats
+	}
+
+	return Stats{
+		Atk: stats.Atk * shadowAtkMultiplier,
+		Def: stats.Def * shadowDefMultiplier,
+		HP:  stats.HP,
+	}
 }
 
 // Valid performs the invariant checks [Simulate] applies on entry: level
@@ -156,9 +200,10 @@ type combatantState struct {
 //
 // The simulator is intentionally simpler than upstream pvpoke Battle.js:
 // it does not model Charge-Move-Priority (simultaneous throws resolve
-// in index order), does not apply shadow Atk/Def factors, and resolves
-// fast damage before charged throws on the shared tick. These are
-// known gaps that the ranker will need to address before full parity.
+// in index order) and resolves fast damage before charged throws on the
+// shared tick. Shadow ATK × 1.2 / DEF ÷ 1.2 is applied per-combatant
+// via the IsShadow flag (see applyShadowMultipliers); callers that
+// want the in-game stat adjustment must set IsShadow=true.
 //
 // Returns [ErrInvalidCombatant] wrapping the specific field that failed
 // validation if either combatant carries out-of-range state.
@@ -183,8 +228,10 @@ func Simulate(attacker, defender *Combatant, opts BattleOptions) (BattleResult, 
 		return BattleResult{}, fmt.Errorf("defender: %w", err)
 	}
 
-	statsA := ComputeStats(attacker.Species.BaseStats, attacker.IV, cpmA)
-	statsB := ComputeStats(defender.Species.BaseStats, defender.IV, cpmB)
+	statsA := applyShadowMultipliers(
+		ComputeStats(attacker.Species.BaseStats, attacker.IV, cpmA), attacker.IsShadow)
+	statsB := applyShadowMultipliers(
+		ComputeStats(defender.Species.BaseStats, defender.IV, cpmB), defender.IsShadow)
 
 	state := [2]combatantState{
 		initState(attacker, statsA, defender.Species.Types),

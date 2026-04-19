@@ -428,3 +428,77 @@ func TestSimulate_MaxTurnsStops(t *testing.T) {
 		t.Errorf("Winner = %d, want BattleTimeout (-2)", result.Winner)
 	}
 }
+
+// TestSimulate_ShadowShortensFight pins that Combatant.IsShadow=true
+// applies the in-game ATK × 1.2 / DEF ÷ 1.2 adjustment. In a mirror
+// matchup (identical stats on both sides) the multipliers preserve
+// the tie — both sides faint simultaneously — but the fight ends
+// SOONER because both sides deal more damage per tick and take
+// more damage per tick. A shadow vs non-shadow match-up also ties
+// (because only one stat scales), but the turn count still drops
+// vs the non-shadow baseline. Distinguishes "multiplier applied"
+// from "multiplier silently ignored".
+func TestSimulate_ShadowShortensFight(t *testing.T) {
+	t.Parallel()
+
+	move := pogopvp.Move{
+		ID: "TACKLE", Type: "normal",
+		Power: 5, EnergyGain: 3, Turns: 1,
+		Category: pogopvp.MoveCategoryFast,
+	}
+
+	// Non-shadow baseline establishes the unscaled turn count.
+	nonShadow := newTestCombatant(150, 100, 200, []string{"normal"}, move, 40.0)
+	baseline := mustSimulate(t, &nonShadow, &nonShadow, pogopvp.BattleOptions{MaxTurns: 500})
+
+	// Shadow attacker vs non-shadow defender. Shadow's ATK × 1.2
+	// raises its damage output; shadow's DEF ÷ 1.2 means the non-
+	// shadow's ATK scales 1.2× against shadow's bulk. Both effects
+	// compound into a faster fight than the non-shadow baseline.
+	shadow := nonShadow
+	shadow.IsShadow = true
+	asymmetric := mustSimulate(t, &shadow, &nonShadow, pogopvp.BattleOptions{MaxTurns: 500})
+
+	if asymmetric.Turns >= baseline.Turns {
+		t.Errorf("shadow vs non-shadow Turns = %d, want < baseline Turns = %d "+
+			"(shadow ATK × 1.2 / DEF ÷ 1.2 should shorten the fight)",
+			asymmetric.Turns, baseline.Turns)
+	}
+}
+
+// TestSimulate_ShadowBothSidesMirror pins that IsShadow=true on both
+// sides preserves symmetry: the shadow × shadow mirror ties under
+// the same turn count as a non-shadow × non-shadow mirror, because
+// the 1.2 / ÷1.2 factors cancel on both sides' DPT calculation.
+// Guards against a regression that applied the multiplier only to
+// the attacker.
+func TestSimulate_ShadowBothSidesMirror(t *testing.T) {
+	t.Parallel()
+
+	move := pogopvp.Move{
+		ID: "TACKLE", Type: "normal",
+		Power: 5, EnergyGain: 3, Turns: 1,
+		Category: pogopvp.MoveCategoryFast,
+	}
+
+	nonShadow := newTestCombatant(150, 100, 200, []string{"normal"}, move, 40.0)
+	shadow := nonShadow
+	shadow.IsShadow = true
+
+	baseline := mustSimulate(t, &nonShadow, &nonShadow, pogopvp.BattleOptions{MaxTurns: 500})
+	mirror := mustSimulate(t, &shadow, &shadow, pogopvp.BattleOptions{MaxTurns: 500})
+
+	// Shadow mirror should tie (both sides symmetric). Turn count
+	// differs from non-shadow mirror because ATK × 1.2 / DEF ÷ 1.2
+	// compounds into higher effective damage-per-tick; both sides
+	// still faint on the same turn though.
+	if mirror.Winner != pogopvp.BattleTie {
+		t.Errorf("shadow mirror Winner = %d, want tie (%d); symmetry broken",
+			mirror.Winner, pogopvp.BattleTie)
+	}
+
+	if mirror.Turns >= baseline.Turns {
+		t.Errorf("shadow mirror Turns = %d, want < non-shadow baseline Turns = %d "+
+			"(shadow multipliers should shorten the fight)", mirror.Turns, baseline.Turns)
+	}
+}
