@@ -59,13 +59,40 @@ type Species struct {
 	Released     bool
 }
 
+// Cup describes one pvpoke cup configuration: the rules for which
+// Pokémon are legal and at what party size / level cap. Include /
+// Exclude are ordered filter lists; semantics match pvpoke's —
+// Include gates membership (an empty Include means "every species"),
+// Exclude subtracts afterwards. Filters with unknown FilterType are
+// passed through so callers can handle them if pvpoke adds new
+// types without needing an engine release.
+type Cup struct {
+	ID        string
+	Title     string
+	Include   []CupFilter
+	Exclude   []CupFilter
+	PartySize int
+	LevelCap  int
+}
+
+// CupFilter is one include/exclude rule. FilterType values observed
+// in the current pvpoke gamemaster: "type" (Pokémon type list),
+// "tag" (species tag like "mega"), "id" (explicit species id list),
+// "evolution" (allow evolved forms only).
+type CupFilter struct {
+	FilterType string
+	Values     []string
+}
+
 // Gamemaster is the parsed and indexed view of the pvpoke gamemaster file.
 // Pokemon and Moves are keyed by their canonical ID so lookups are O(1).
-// Version captures the source timestamp for cache invalidation.
+// Cups is keyed by cup id (e.g. "spring", "all"). Version captures the
+// source timestamp for cache invalidation.
 type Gamemaster struct {
 	Version string
 	Pokemon map[string]Species
 	Moves   map[string]Move
+	Cups    map[string]Cup
 }
 
 // ErrGamemasterDecode wraps JSON-syntax errors from the underlying decoder.
@@ -90,6 +117,27 @@ type gamemasterRaw struct {
 	ID        string       `json:"id"`
 	Pokemon   []speciesRaw `json:"pokemon"`
 	Moves     []moveRaw    `json:"moves"`
+	Cups      []cupRaw     `json:"cups"`
+}
+
+// cupRaw mirrors the pvpoke `cups[]` entry. Only the universally
+// present fields are captured; per-cup extensions (tierRules,
+// restrictedPicks, overrides, slots, presetOnly, rankingAlias, etc.)
+// are ignored — clients of Cup should consult pvpoke directly if
+// they need those.
+type cupRaw struct {
+	Name      string         `json:"name"`
+	Title     string         `json:"title"`
+	Include   []cupFilterRaw `json:"include"`
+	Exclude   []cupFilterRaw `json:"exclude"`
+	PartySize int            `json:"partySize"`
+	LevelCap  int            `json:"levelCap"`
+}
+
+// cupFilterRaw mirrors one element inside cup.include / cup.exclude.
+type cupFilterRaw struct {
+	FilterType string   `json:"filterType"`
+	Values     []string `json:"values"`
 }
 
 type speciesRaw struct {
@@ -157,6 +205,7 @@ func ParseGamemaster(reader io.Reader) (*Gamemaster, error) {
 		Version: raw.Timestamp,
 		Pokemon: make(map[string]Species, len(raw.Pokemon)),
 		Moves:   make(map[string]Move, len(raw.Moves)),
+		Cups:    make(map[string]Cup, len(raw.Cups)),
 	}
 
 	err = indexSpecies(gamemaster, raw.Pokemon)
@@ -169,7 +218,62 @@ func ParseGamemaster(reader io.Reader) (*Gamemaster, error) {
 		return nil, err
 	}
 
+	err = indexCups(gamemaster, raw.Cups)
+	if err != nil {
+		return nil, err
+	}
+
 	return gamemaster, nil
+}
+
+// indexCups promotes every raw cup entry and populates the
+// gamemaster map. Cups with an empty Name are rejected; duplicate
+// ids are rejected because pvpoke's own publish pipeline relies on
+// them being unique.
+func indexCups(gamemaster *Gamemaster, entries []cupRaw) error {
+	for index := range entries {
+		cup := convertCup(&entries[index])
+
+		if cup.ID == "" {
+			return fmt.Errorf("%w: cup[%d] has empty name", ErrGamemasterInvalid, index)
+		}
+
+		_, exists := gamemaster.Cups[cup.ID]
+		if exists {
+			return fmt.Errorf("%w: duplicate cup id %q", ErrGamemasterInvalid, cup.ID)
+		}
+
+		gamemaster.Cups[cup.ID] = cup
+	}
+
+	return nil
+}
+
+// convertCup lifts one cupRaw into the public Cup shape.
+func convertCup(entry *cupRaw) Cup {
+	return Cup{
+		ID:        entry.Name,
+		Title:     entry.Title,
+		Include:   convertCupFilters(entry.Include),
+		Exclude:   convertCupFilters(entry.Exclude),
+		PartySize: entry.PartySize,
+		LevelCap:  entry.LevelCap,
+	}
+}
+
+// convertCupFilters projects the raw filter list into the public
+// shape. Preserves the original order and passes unknown
+// FilterType values through unchanged.
+func convertCupFilters(entries []cupFilterRaw) []CupFilter {
+	out := make([]CupFilter, 0, len(entries))
+	for i := range entries {
+		out = append(out, CupFilter{
+			FilterType: entries[i].FilterType,
+			Values:     append([]string(nil), entries[i].Values...),
+		})
+	}
+
+	return out
 }
 
 // indexSpecies promotes every raw Pokémon entry and populates the

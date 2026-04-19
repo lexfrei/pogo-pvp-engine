@@ -444,6 +444,95 @@ func TestParseGamemaster_MoveWithNoEnergy(t *testing.T) {
 	}
 }
 
+// TestParseGamemaster_Cups pins the cup table: the fixture declares
+// three cups (all, spring, little), and each one must round-trip
+// through ParseGamemaster with the expected fields.
+func TestParseGamemaster_Cups(t *testing.T) {
+	t.Parallel()
+
+	gm := loadSampleGamemaster(t)
+
+	if len(gm.Cups) != 3 {
+		t.Fatalf("Cups len = %d, want 3 (all, spring, little)", len(gm.Cups))
+	}
+
+	all, ok := gm.Cups["all"]
+	if !ok {
+		t.Fatal("Cups missing key \"all\"")
+	}
+	if all.Title != "All Pokemon" {
+		t.Errorf("all.Title = %q, want \"All Pokemon\"", all.Title)
+	}
+	if len(all.Include) != 0 {
+		t.Errorf("all.Include = %v, want empty", all.Include)
+	}
+	if len(all.Exclude) != 1 || all.Exclude[0].FilterType != "tag" {
+		t.Errorf("all.Exclude = %+v, want single tag filter", all.Exclude)
+	}
+
+	spring, ok := gm.Cups["spring"]
+	if !ok {
+		t.Fatal("Cups missing key \"spring\"")
+	}
+	if spring.PartySize != 3 {
+		t.Errorf("spring.PartySize = %d, want 3", spring.PartySize)
+	}
+	if len(spring.Include) != 1 {
+		t.Fatalf("spring.Include len = %d, want 1", len(spring.Include))
+	}
+	wantTypes := []string{"water", "grass", "fairy"}
+	if !slices.Equal(spring.Include[0].Values, wantTypes) {
+		t.Errorf("spring.Include[0].Values = %v, want %v",
+			spring.Include[0].Values, wantTypes)
+	}
+	if len(spring.Exclude) != 2 {
+		t.Errorf("spring.Exclude len = %d, want 2 (tag + id)", len(spring.Exclude))
+	}
+
+	little, ok := gm.Cups["little"]
+	if !ok {
+		t.Fatal("Cups missing key \"little\"")
+	}
+	if little.LevelCap != 50 {
+		t.Errorf("little.LevelCap = %d, want 50", little.LevelCap)
+	}
+}
+
+// TestParseGamemaster_CupEmptyNameRejected pins the validation:
+// a cup whose `name` is blank is rejected as ErrGamemasterInvalid
+// rather than silently indexed under the empty string.
+func TestParseGamemaster_CupEmptyNameRejected(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[],"moves":[],"cups":[` +
+		`{"name":"","title":"broken","include":[],"exclude":[]}` +
+		`]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with empty cup name expected error")
+	}
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+	}
+}
+
+// TestParseGamemaster_CupDuplicateIDRejected pins the dedup check.
+func TestParseGamemaster_CupDuplicateIDRejected(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[],"moves":[],"cups":[` +
+		`{"name":"spring","title":"A","include":[],"exclude":[]},` +
+		`{"name":"spring","title":"B","include":[],"exclude":[]}` +
+		`]}`
+	_, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err == nil {
+		t.Fatal("ParseGamemaster with duplicate cup name expected error")
+	}
+	if !errors.Is(err, pogopvp.ErrGamemasterInvalid) {
+		t.Errorf("error = %v, want wrapping ErrGamemasterInvalid", err)
+	}
+}
+
 func TestParseGamemaster_MoveWithBothEnergyAndGain(t *testing.T) {
 	t.Parallel()
 

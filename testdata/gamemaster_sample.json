@@ -741,5 +741,37 @@
       "archetype": "General",
       "turns": 1
     }
+  ],
+  "cups": [
+    {
+      "name": "all",
+      "title": "All Pokemon",
+      "include": [],
+      "exclude": [
+        {"filterType": "tag", "values": ["mega"]}
+      ]
+    },
+    {
+      "name": "spring",
+      "title": "Spring Cup",
+      "include": [
+        {"filterType": "type", "values": ["water", "grass", "fairy"]}
+      ],
+      "exclude": [
+        {"filterType": "tag", "values": ["mega"]},
+        {"filterType": "id", "values": ["jumpluff", "roserade"]}
+      ],
+      "partySize": 3
+    },
+    {
+      "name": "little",
+      "title": "Little Cup",
+      "include": [],
+      "exclude": [
+        {"filterType": "tag", "values": ["mega"]}
+      ],
+      "levelCap": 50,
+      "partySize": 3
+    }
   ]
 }
