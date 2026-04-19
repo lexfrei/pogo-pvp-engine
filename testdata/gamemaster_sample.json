@@ -304,6 +304,64 @@
       "tags": [
         "shadoweligible"
       ]
+    },
+    {
+      "dex": 132,
+      "speciesName": "Ditto",
+      "speciesId": "ditto",
+      "baseStats": {
+        "atk": 91,
+        "def": 91,
+        "hp": 134
+      },
+      "types": [
+        "normal",
+        "none"
+      ],
+      "fastMoves": [
+        "TRANSFORM"
+      ],
+      "chargedMoves": [
+        "STRUGGLE"
+      ],
+      "tags": [
+        "legendary"
+      ],
+      "released": true
+    },
+    {
+      "dex": 196,
+      "speciesName": "Eevee",
+      "speciesId": "eevee",
+      "baseStats": {
+        "atk": 104,
+        "def": 114,
+        "hp": 146
+      },
+      "types": [
+        "normal",
+        "none"
+      ],
+      "fastMoves": [
+        "TACKLE",
+        "QUICK_ATTACK"
+      ],
+      "chargedMoves": [
+        "DIG",
+        "SWIFT",
+        "BODY_SLAM"
+      ],
+      "family": {
+        "id": "FAMILY_EEVEE",
+        "evolutions": [
+          "vaporeon",
+          "jolteon",
+          "flareon",
+          "espeon",
+          "umbreon"
+        ]
+      },
+      "released": true
     }
   ],
   "moves": [

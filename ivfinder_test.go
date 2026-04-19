@@ -351,3 +351,50 @@ func TestLevelForCP_InvalidTargetCP(t *testing.T) {
 		t.Errorf("error = %v, want wrapping ErrInvalidSpreadOpts", err)
 	}
 }
+
+// TestLevelForCP_InvalidIV pins the IV-validation guard. An out-of
+// range IV component (here Atk=200, which overflows past MaxIV=15
+// while still fitting in uint8) must surface ErrInvalidSpreadOpts
+// before ComputeCP silently produces garbage.
+func TestLevelForCP_InvalidIV(t *testing.T) {
+	t.Parallel()
+
+	base := pogopvp.BaseStats{Atk: 121, Def: 152, HP: 155}
+
+	// Bypasses NewIV so we can construct an invalid IV that uint8
+	// happily holds but pogopvp.IV.Valid() rejects.
+	ivs := pogopvp.IV{Atk: 200, Def: 0, Sta: 0}
+
+	_, err := pogopvp.LevelForCP(base, ivs, 1500,
+		pogopvp.FindSpreadOpts{XLAllowed: true})
+	if !errors.Is(err, pogopvp.ErrInvalidSpreadOpts) {
+		t.Errorf("error = %v, want wrapping ErrInvalidSpreadOpts", err)
+	}
+}
+
+// TestLevelForCP_TooLowWithMinLevelCap exercises the ErrCPTooLow
+// branch where the floor is not the default level 1 but a
+// caller-supplied MinLevelCap. A high MinLevelCap against a small
+// targetCP must surface the error — otherwise the godoc on
+// ErrCPTooLow that promises "min-level-bound CP" semantics would
+// drift from reality.
+func TestLevelForCP_TooLowWithMinLevelCap(t *testing.T) {
+	t.Parallel()
+
+	base := pogopvp.BaseStats{Atk: 121, Def: 152, HP: 155}
+
+	ivs, err := pogopvp.NewIV(15, 15, 15)
+	if err != nil {
+		t.Fatalf("NewIV: %v", err)
+	}
+
+	// medicham 15/15/15 at level 40 easily clears CP 100; the
+	// MinLevelCap=40 floor therefore blocks any level with CP ≤ 100.
+	_, err = pogopvp.LevelForCP(base, ivs, 100, pogopvp.FindSpreadOpts{
+		XLAllowed:   true,
+		MinLevelCap: 40,
+	})
+	if !errors.Is(err, pogopvp.ErrCPTooLow) {
+		t.Errorf("error = %v, want wrapping ErrCPTooLow", err)
+	}
+}

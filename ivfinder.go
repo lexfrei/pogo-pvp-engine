@@ -12,9 +12,10 @@ import (
 var ErrCPCapUnreachable = errors.New("cp cap unreachable")
 
 // ErrCPTooLow is returned by [LevelForCP] when even the species'
-// level-1 CP exceeds the requested target — the search envelope
-// starts above the target, no level fits. Distinguishes the
-// "target unreachable because too small" case from an invalid
+// min-level-bound CP (level 1 by default, higher if FindSpreadOpts
+// raised MinLevelCap) exceeds the requested target — the search
+// envelope starts above the target, no level fits. Distinguishes
+// the "target unreachable because too small" case from an invalid
 // FindSpreadOpts.
 var ErrCPTooLow = errors.New("target cp below minimum reachable cp")
 
@@ -195,6 +196,12 @@ func LevelForCP(
 	if targetCP <= 0 {
 		return LevelResult{}, fmt.Errorf("%w: targetCP %d must be positive",
 			ErrInvalidSpreadOpts, targetCP)
+	}
+
+	if !ivs.Valid() {
+		return LevelResult{}, fmt.Errorf(
+			"%w: IV %+v has components outside [0, %d]",
+			ErrInvalidSpreadOpts, ivs, MaxIV)
 	}
 
 	bounds, err := resolveLevelBounds(&opts)

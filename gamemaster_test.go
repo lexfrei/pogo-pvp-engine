@@ -26,12 +26,16 @@ func loadSampleGamemaster(t *testing.T) *pogopvp.Gamemaster {
 	return gm
 }
 
-// The testdata sample is a fixed subset (5 Pokémon — bulbasaur, medicham,
-// whiscash, machamp, azumarill — plus all the moves they reference). These
-// counts are exact, not floors; if the fixture is regenerated the counts
-// move with it.
+// The testdata sample is a fixed subset (7 Pokémon — bulbasaur,
+// medicham, whiscash, machamp, azumarill, plus ditto and eevee
+// added to exercise the family-block edge cases: ditto has no
+// family block at all, eevee has branching evolutions with no
+// parent). Move count stays at the 31 ids referenced by the
+// original five species; ditto / eevee moves are not materialised
+// in the Moves section. These counts are exact, not floors; if the
+// fixture is regenerated the counts move with it.
 const (
-	sampleExpectedPokemonCount = 5
+	sampleExpectedPokemonCount = 7
 	sampleExpectedMovesCount   = 31
 )
 
@@ -105,6 +109,57 @@ func TestParseGamemaster_FamilyEvolutions(t *testing.T) {
 	}
 	if len(medi.Evolutions) != 0 {
 		t.Errorf("medicham Evolutions = %v, want empty (terminal form)", medi.Evolutions)
+	}
+}
+
+// TestParseGamemaster_NoFamily confirms the nil-Family branch: a
+// species with no family block (pvpoke has 300+ such entries in
+// real data) must parse with Evolutions=nil, PreEvolution="" and
+// no panic / error. Ditto is the canonical example — no family in
+// pvpoke's gamemaster.
+func TestParseGamemaster_NoFamily(t *testing.T) {
+	t.Parallel()
+
+	gm := loadSampleGamemaster(t)
+
+	ditto, ok := gm.Pokemon["ditto"]
+	if !ok {
+		t.Fatal("ditto missing from parsed Pokemon map")
+	}
+
+	if ditto.PreEvolution != "" {
+		t.Errorf("ditto PreEvolution = %q, want empty (no family block)",
+			ditto.PreEvolution)
+	}
+	if ditto.Evolutions != nil {
+		t.Errorf("ditto Evolutions = %v, want nil (no family block)",
+			ditto.Evolutions)
+	}
+}
+
+// TestParseGamemaster_BranchingEvolutions exercises species with more
+// than one direct child (eevee has 5+ in pvpoke). The godoc on
+// Species.Evolutions mentions branching families; this pins it.
+func TestParseGamemaster_BranchingEvolutions(t *testing.T) {
+	t.Parallel()
+
+	gm := loadSampleGamemaster(t)
+
+	eevee, ok := gm.Pokemon["eevee"]
+	if !ok {
+		t.Fatal("eevee missing from parsed Pokemon map")
+	}
+
+	if eevee.PreEvolution != "" {
+		t.Errorf("eevee PreEvolution = %q, want empty (base form)",
+			eevee.PreEvolution)
+	}
+	if len(eevee.Evolutions) < 3 {
+		t.Errorf("eevee Evolutions = %v, want ≥ 3 branches", eevee.Evolutions)
+	}
+	if !slices.Contains(eevee.Evolutions, "vaporeon") {
+		t.Errorf("eevee Evolutions = %v, want to contain vaporeon",
+			eevee.Evolutions)
 	}
 }
 

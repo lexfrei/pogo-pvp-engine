@@ -5,14 +5,7 @@ math. Intended as the engine layer for MCP servers, Discord bots, CLIs, or
 any other consumer that needs accurate 1v1 PvP outcomes without pulling in a
 JavaScript runtime.
 
-**Status**: early development. Currently implemented: foundation types
-and math (`IV`, `Pokemon`, `Form`, `BaseStats`, `Stats`, `ComputeStats`,
-`ComputeCP`, `ComputeStatProduct`, `CPMAt`), gamemaster parser
-(`Gamemaster`, `Species`, `Move`, `ParseGamemaster`), PvP damage
-(`TypeEffectiveness`, `StabFactor`, `CalcDamage`), a simplified 1v1
-battle simulator (`Simulate`, `Combatant`, `BattleOptions`,
-`BattleResult`), and a pure stat-product IV/level optimizer
-(`FindOptimalSpread`, `FindSpreadOpts`, `OptimalSpread`).
+**Status**: early development. Currently implemented: foundation types and math (`IV`, `Pokemon`, `Form`, `BaseStats`, `Stats`, `ComputeStats`, `ComputeCP`, `ComputeStatProduct`, `CPMAt`), gamemaster parser (`Gamemaster`, `Species`, `Move`, `ParseGamemaster`) — `Species` carries `LegacyMoves`, `Evolutions`, and `PreEvolution` in addition to the stat line, move lists, tags, and release flag; `IsLegacyMove(species, moveID)` is a public per-species lookup. PvP damage (`TypeEffectiveness`, `StabFactor`, `CalcDamage`), a simplified 1v1 battle simulator (`Simulate`, `Combatant`, `BattleOptions`, `BattleResult`), a pure stat-product IV/level optimizer (`FindOptimalSpread`, `FindSpreadOpts`, `OptimalSpread`), and a CP → level inverse (`LevelForCP`, `LevelResult`, `ErrCPTooLow`) for cases where the caller knows the CP and needs the underlying level.
 
 Battle simulator caveats: no Charge-Move-Priority on simultaneous
 throws, no shadow Atk/Def scaling, fast-damage resolves before charged
