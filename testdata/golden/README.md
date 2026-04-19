@@ -22,25 +22,27 @@ to upstream, not to itself.
 {
   "name": "short human description",
   "attacker": {
-    "species_id": "medicham",
+    "speciesId": "medicham",
     "iv": [0, 15, 15],
     "level": 50,
-    "fast_move": "COUNTER",
-    "charged_moves": ["ICE_PUNCH", "PSYCHIC"],
+    "fastMove": "COUNTER",
+    "chargedMoves": ["ICE_PUNCH", "PSYCHIC"],
     "shields": 1
   },
   "defender": { "... same shape ..." },
-  "options": { "max_turns": 0 },
+  "options": { "maxTurns": 0 },
   "expected": {
     "winner": 0,
     "turns": 123,
-    "hp_remaining": [45, 0],
-    "energy_at_end": [30, 70],
-    "shields_used": [1, 1],
-    "charged_fired": [2, 3]
+    "hpRemaining": [45, 0],
+    "energyAtEnd": [30, 70],
+    "shieldsUsed": [1, 1],
+    "chargedFired": [2, 3]
   }
 }
 ```
+
+All field names are camelCase to match the pvpoke.com JSON conventions and the Go struct tags in `golden_test.go`; snake_case variants silently deserialise to zero values because the decoder ignores unknown keys.
 
 `winner` uses the engine's constants: `0` = attacker, `1` = defender,
 `BattleTie = 2`, `BattleTimeout = 3`.
