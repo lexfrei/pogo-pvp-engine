@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 )
 
 // MoveCategory distinguishes fast moves (generate energy, repeat on cooldown)
@@ -35,7 +36,14 @@ type Move struct {
 
 // Species is one Pokémon entry from the gamemaster. Base stats and types
 // are authoritative for CP / stat-product math; the move slices list legal
-// choices keyed into [Gamemaster.Moves].
+// choices keyed into [Gamemaster.Moves]. LegacyMoves lists move ids that
+// are legacy on THIS species specifically (community-day, event-exclusive,
+// ETM-only). The same move id can be regular on one species and legacy
+// on another — legacy is a per-species property, not per-move.
+// Evolutions and PreEvolution map the pvpoke `family` block: Evolutions
+// lists direct children (can branch, e.g. eevee), PreEvolution names the
+// immediate parent ("" for base forms). Chain traversal is the caller's
+// responsibility.
 type Species struct {
 	Dex          int
 	ID           string
@@ -44,6 +52,9 @@ type Species struct {
 	Types        []string
 	FastMoves    []string
 	ChargedMoves []string
+	LegacyMoves  []string
+	Evolutions   []string
+	PreEvolution string
 	Tags         []string
 	Released     bool
 }
@@ -89,8 +100,22 @@ type speciesRaw struct {
 	Types        []string     `json:"types"`
 	FastMoves    []string     `json:"fastMoves"`
 	ChargedMoves []string     `json:"chargedMoves"`
+	LegacyMoves  []string     `json:"legacyMoves"`
+	Family       *familyRaw   `json:"family"`
 	Tags         []string     `json:"tags"`
 	Released     bool         `json:"released"`
+}
+
+// familyRaw mirrors the pvpoke `family` block on each species:
+// Parent is the direct pre-evolution id (absent for base forms),
+// Evolutions is the direct-children list (can branch — eevee has
+// 8+ entries). ID (e.g. "FAMILY_BULBASAUR") is parsed but not
+// surfaced on Species — the string id is not useful for any lookup
+// and adds noise to the public shape.
+type familyRaw struct {
+	ID         string   `json:"id"`
+	Parent     string   `json:"parent"`
+	Evolutions []string `json:"evolutions"`
 }
 
 type baseStatsRaw struct {
@@ -224,6 +249,16 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 			ErrGamemasterInvalid, index, raw.SpeciesID, raw.Types)
 	}
 
+	var (
+		preEvolution string
+		evolutions   []string
+	)
+
+	if raw.Family != nil {
+		preEvolution = raw.Family.Parent
+		evolutions = raw.Family.Evolutions
+	}
+
 	return Species{
 		Dex:          raw.Dex,
 		ID:           raw.SpeciesID,
@@ -232,9 +267,26 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 		Types:        types,
 		FastMoves:    raw.FastMoves,
 		ChargedMoves: raw.ChargedMoves,
+		LegacyMoves:  raw.LegacyMoves,
+		Evolutions:   evolutions,
+		PreEvolution: preEvolution,
 		Tags:         raw.Tags,
 		Released:     raw.Released,
 	}, nil
+}
+
+// IsLegacyMove reports whether moveID is a legacy move for this species.
+// Legacy in pvpoke semantics = community-day exclusive, event-exclusive,
+// or ETM-only (not accessible via regular TM at the time of rollout).
+// The same move id can be regular on one species and legacy on another —
+// the lookup is scoped to the species passed in. A nil species returns
+// false defensively.
+func IsLegacyMove(species *Species, moveID string) bool {
+	if species == nil {
+		return false
+	}
+
+	return slices.Contains(species.LegacyMoves, moveID)
 }
 
 // normaliseTypes drops the pvpoke placeholder "none" and any empty strings,

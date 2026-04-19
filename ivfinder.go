@@ -11,6 +11,14 @@ import (
 // legal spread can fit.
 var ErrCPCapUnreachable = errors.New("cp cap unreachable")
 
+// ErrCPTooLow is returned by [LevelForCP] when even the species'
+// min-level-bound CP (level 1 by default, higher if FindSpreadOpts
+// raised MinLevelCap) exceeds the requested target — the search
+// envelope starts above the target, no level fits. Distinguishes
+// the "target unreachable because too small" case from an invalid
+// FindSpreadOpts.
+var ErrCPTooLow = errors.New("target cp below minimum reachable cp")
+
 // ErrInvalidSpreadOpts is returned by [FindOptimalSpread] when the
 // requested search envelope is self-contradictory: negative caps, min
 // above max, bounds outside [MinLevel, MaxLevel], off-grid levels, or
@@ -160,6 +168,58 @@ func validateLevelBound(name string, value float64) error {
 	}
 
 	return nil
+}
+
+// LevelResult reports the highest level on the 0.5 grid at which
+// (base, ivs) has CP ≤ targetCP, plus the resulting CP. Exact is
+// true when the returned CP equals targetCP exactly; otherwise the
+// level is the greatest one that still fits (strict ≤).
+type LevelResult struct {
+	Level float64
+	CP    int
+	Exact bool
+}
+
+// LevelForCP returns the highest level on the 0.5 grid at which the
+// given (species base, ivs) has CP ≤ targetCP. Monotonic descent
+// from the opts max-level bound works because ComputeCP is monotone
+// in CPM (and CPM is monotone in level). Returns [ErrCPTooLow] when
+// even the minimum-level CP exceeds targetCP, and [ErrInvalidSpreadOpts]
+// for malformed opts (same semantics as [FindOptimalSpread]).
+//
+// Level-1 is usually far below any realistic cap thanks to the CP
+// floor of 10, so the ErrCPTooLow branch fires only for pathological
+// targets (< 10) — kept for defensive completeness.
+func LevelForCP(
+	base BaseStats, ivs IV, targetCP int, opts FindSpreadOpts,
+) (LevelResult, error) {
+	if targetCP <= 0 {
+		return LevelResult{}, fmt.Errorf("%w: targetCP %d must be positive",
+			ErrInvalidSpreadOpts, targetCP)
+	}
+
+	if !ivs.Valid() {
+		return LevelResult{}, fmt.Errorf(
+			"%w: IV %+v has components outside [0, %d]",
+			ErrInvalidSpreadOpts, ivs, MaxIV)
+	}
+
+	bounds, err := resolveLevelBounds(&opts)
+	if err != nil {
+		return LevelResult{}, err
+	}
+
+	spread, ok := bestLevelForIV(base, ivs, targetCP, bounds)
+	if !ok {
+		return LevelResult{}, fmt.Errorf("%w: target %d below min-level CP",
+			ErrCPTooLow, targetCP)
+	}
+
+	return LevelResult{
+		Level: spread.Level,
+		CP:    spread.CP,
+		Exact: spread.CP == targetCP,
+	}, nil
 }
 
 // bestLevelForIV walks the half-level grid downward from maxLevel and
