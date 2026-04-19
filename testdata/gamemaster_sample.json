@@ -766,7 +766,9 @@
     {
       "name": "little",
       "title": "Little Cup",
-      "include": [],
+      "include": [
+        {"filterType": "evolution", "values": [1]}
+      ],
       "exclude": [
         {"filterType": "tag", "values": ["mega"]}
       ],

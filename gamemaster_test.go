@@ -496,6 +496,101 @@ func TestParseGamemaster_Cups(t *testing.T) {
 	if little.LevelCap != 50 {
 		t.Errorf("little.LevelCap = %d, want 50", little.LevelCap)
 	}
+
+	// Little Cup uses the "evolution" filter whose upstream payload
+	// is a JSON integer array (`"values": [1]`). Round-trip the
+	// numeric value through the string slice so the parser does not
+	// fall over on pvpoke data — this was the bootstrap-crash hotfix.
+	if len(little.Include) != 1 {
+		t.Fatalf("little.Include len = %d, want 1 (evolution filter)", len(little.Include))
+	}
+	if little.Include[0].FilterType != "evolution" {
+		t.Errorf("little.Include[0].FilterType = %q, want \"evolution\"",
+			little.Include[0].FilterType)
+	}
+	if !slices.Equal(little.Include[0].Values, []string{"1"}) {
+		t.Errorf("little.Include[0].Values = %v, want [\"1\"] (numeric stringified)",
+			little.Include[0].Values)
+	}
+}
+
+// TestParseGamemaster_ThirdMoveCostBooleanFalse pins the second
+// bootstrap-crash hotfix: pvpoke emits `"thirdMoveCost": false`
+// for species whose second charged move is never unlockable
+// (smeargle in current payload). The parser must stringify-false
+// to 0 instead of failing the whole decode.
+func TestParseGamemaster_ThirdMoveCostBooleanFalse(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[` +
+		`{"dex":235,"speciesId":"smeargle","speciesName":"Smeargle",` +
+		`"baseStats":{"atk":40,"def":88,"hp":146},"types":["normal"],` +
+		`"fastMoves":["TACKLE"],"chargedMoves":["STRUGGLE"],` +
+		`"thirdMoveCost":false,"released":true}` +
+		`],"moves":[` +
+		`{"moveId":"TACKLE","name":"Tackle","type":"normal",` +
+		`"power":3,"energy":0,"energyGain":3,"cooldown":500,"turns":1},` +
+		`{"moveId":"STRUGGLE","name":"Struggle","type":"normal",` +
+		`"power":35,"energy":100,"cooldown":500}` +
+		`]}`
+
+	gm, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err != nil {
+		t.Fatalf("ParseGamemaster: %v (boolean false must not fail decode)", err)
+	}
+
+	smeargle, ok := gm.Pokemon["smeargle"]
+	if !ok {
+		t.Fatal("smeargle missing")
+	}
+	if smeargle.ThirdMoveCost != 0 {
+		t.Errorf("smeargle ThirdMoveCost = %d, want 0 (false → 0 normalisation)",
+			smeargle.ThirdMoveCost)
+	}
+}
+
+// TestParseGamemaster_CupFilterMixedValueTypes pins the normaliser:
+// pvpoke may emit strings, integers, or floats inside `cups[].*.values`
+// depending on filter type. The parser must stringify each element
+// rather than fall over on the first non-string.
+func TestParseGamemaster_CupFilterMixedValueTypes(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[],"moves":[],"cups":[` +
+		`{"name":"mixed","title":"Mixed",` +
+		`"include":[` +
+		`{"filterType":"evolution","values":[1]},` +
+		`{"filterType":"type","values":["water","grass"]},` +
+		`{"filterType":"mystery","values":[2.5]}` +
+		`],"exclude":[]}` +
+		`]}`
+
+	gm, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err != nil {
+		t.Fatalf("ParseGamemaster: %v", err)
+	}
+
+	cup, ok := gm.Cups["mixed"]
+	if !ok {
+		t.Fatal("\"mixed\" cup missing")
+	}
+
+	if len(cup.Include) != 3 {
+		t.Fatalf("Include len = %d, want 3", len(cup.Include))
+	}
+
+	if !slices.Equal(cup.Include[0].Values, []string{"1"}) {
+		t.Errorf("evolution filter: Values = %v, want [\"1\"]", cup.Include[0].Values)
+	}
+
+	if !slices.Equal(cup.Include[1].Values, []string{"water", "grass"}) {
+		t.Errorf("type filter: Values = %v, want [\"water\",\"grass\"]",
+			cup.Include[1].Values)
+	}
+
+	if !slices.Equal(cup.Include[2].Values, []string{"2.5"}) {
+		t.Errorf("float filter: Values = %v, want [\"2.5\"]", cup.Include[2].Values)
+	}
 }
 
 // TestParseGamemaster_BuddyDistance pins the buddyDistance field.

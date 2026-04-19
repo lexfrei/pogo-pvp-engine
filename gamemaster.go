@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strings"
 )
 
 // MoveCategory distinguishes fast moves (generate energy, repeat on cooldown)
@@ -90,9 +91,19 @@ type Cup struct {
 }
 
 // CupFilter is one include/exclude rule. FilterType values observed
-// in the current pvpoke gamemaster: "type" (Pokémon type list),
-// "tag" (species tag like "mega"), "id" (explicit species id list),
-// "evolution" (allow evolved forms only).
+// in the current pvpoke gamemaster:
+//   - "type": Pokémon type list (e.g. ["water","grass"]).
+//   - "tag": species-tag list (e.g. ["mega"], ["shadoweligible"]).
+//   - "id": explicit species id list (e.g. ["medicham"]).
+//   - "evolution": pvpoke stores an evolution-stage threshold here
+//     as a single number (e.g. [1] for Little Cup = only species
+//     whose stage is ≤ 1). Values are stringified ("1"), not the
+//     "allow evolved forms only" semantics earlier godoc claimed.
+//
+// Values is always a slice of strings. If pvpoke emits a numeric
+// element in the JSON (as it does for "evolution"), the parser
+// stringifies it — so ["1"], not [1]. Callers interpreting
+// FilterType="evolution" must parse the number themselves.
 type CupFilter struct {
 	FilterType string
 	Values     []string
@@ -149,25 +160,34 @@ type cupRaw struct {
 }
 
 // cupFilterRaw mirrors one element inside cup.include / cup.exclude.
+// Values is kept as raw JSON because pvpoke's "evolution" filter
+// emits integers (e.g. `"values": [1]` for Little Cup) while "type"
+// / "tag" / "id" emit string arrays. Normalising both into []string
+// happens in convertCupFilters — a []string tag here would fail to
+// decode the numeric case and bootstrap the whole parser.
 type cupFilterRaw struct {
-	FilterType string   `json:"filterType"`
-	Values     []string `json:"values"`
+	FilterType string            `json:"filterType"`
+	Values     []json.RawMessage `json:"values"`
 }
 
 type speciesRaw struct {
-	Dex           int          `json:"dex"`
-	SpeciesID     string       `json:"speciesId"`
-	SpeciesName   string       `json:"speciesName"`
-	BaseStats     baseStatsRaw `json:"baseStats"`
-	Types         []string     `json:"types"`
-	FastMoves     []string     `json:"fastMoves"`
-	ChargedMoves  []string     `json:"chargedMoves"`
-	LegacyMoves   []string     `json:"legacyMoves"`
-	Family        *familyRaw   `json:"family"`
-	Tags          []string     `json:"tags"`
-	Released      bool         `json:"released"`
-	ThirdMoveCost int          `json:"thirdMoveCost"`
-	BuddyDistance int          `json:"buddyDistance"`
+	Dex          int          `json:"dex"`
+	SpeciesID    string       `json:"speciesId"`
+	SpeciesName  string       `json:"speciesName"`
+	BaseStats    baseStatsRaw `json:"baseStats"`
+	Types        []string     `json:"types"`
+	FastMoves    []string     `json:"fastMoves"`
+	ChargedMoves []string     `json:"chargedMoves"`
+	LegacyMoves  []string     `json:"legacyMoves"`
+	Family       *familyRaw   `json:"family"`
+	Tags         []string     `json:"tags"`
+	Released     bool         `json:"released"`
+	// ThirdMoveCost is raw because pvpoke emits `false` for species
+	// whose second charged move is intentionally never unlockable
+	// (e.g. smeargle, ditto) and an integer for the rest.
+	// convertSpecies normalises: integer → value, false/null → 0.
+	ThirdMoveCost json.RawMessage `json:"thirdMoveCost"`
+	BuddyDistance int             `json:"buddyDistance"`
 }
 
 // familyRaw mirrors the pvpoke `family` block on each species:
@@ -279,14 +299,45 @@ func convertCup(entry *cupRaw) Cup {
 
 // convertCupFilters projects the raw filter list into the public
 // shape. Preserves the original order and passes unknown
-// FilterType values through unchanged.
+// FilterType values through unchanged. Each raw JSON value is
+// normalised to a string: JSON strings keep their unquoted form,
+// numbers stringify ("1"), other shapes are stored as their raw
+// JSON representation. This lets the "evolution" filter
+// (integers in pvpoke's gamemaster) coexist with string filters
+// like "type" / "tag" / "id" on the same Values slice.
 func convertCupFilters(entries []cupFilterRaw) []CupFilter {
 	out := make([]CupFilter, 0, len(entries))
 	for i := range entries {
 		out = append(out, CupFilter{
 			FilterType: entries[i].FilterType,
-			Values:     append([]string(nil), entries[i].Values...),
+			Values:     normaliseCupFilterValues(entries[i].Values),
 		})
+	}
+
+	return out
+}
+
+// normaliseCupFilterValues converts each raw JSON element to a
+// string: quoted strings become their Go-unquoted value, numbers
+// become their decimal form. Anything else is passed through as its
+// raw JSON text (e.g. `true`, `null`, object / array literals) so
+// no data is lost if pvpoke adds an exotic element shape later.
+func normaliseCupFilterValues(raws []json.RawMessage) []string {
+	out := make([]string, 0, len(raws))
+
+	for _, raw := range raws {
+		text := strings.TrimSpace(string(raw))
+
+		var asString string
+
+		err := json.Unmarshal(raw, &asString)
+		if err == nil {
+			out = append(out, asString)
+
+			continue
+		}
+
+		out = append(out, text)
 	}
 
 	return out
@@ -392,9 +443,31 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 		PreEvolution:  preEvolution,
 		Tags:          raw.Tags,
 		Released:      raw.Released,
-		ThirdMoveCost: raw.ThirdMoveCost,
+		ThirdMoveCost: normaliseThirdMoveCost(raw.ThirdMoveCost),
 		BuddyDistance: raw.BuddyDistance,
 	}, nil
+}
+
+// normaliseThirdMoveCost converts pvpoke's `thirdMoveCost` payload
+// into the engine integer. pvpoke emits a number for species whose
+// second charged move has a published unlock cost, and the literal
+// boolean `false` (or omits the field) for species whose second
+// move is never unlockable (smeargle, ditto). Both absent and false
+// normalise to 0 — the public Species.ThirdMoveCost=0 semantic
+// already means "no published cost", which covers both cases.
+func normaliseThirdMoveCost(raw json.RawMessage) int {
+	if len(raw) == 0 {
+		return 0
+	}
+
+	var cost int
+
+	err := json.Unmarshal(raw, &cost)
+	if err == nil {
+		return cost
+	}
+
+	return 0
 }
 
 // IsLegacyMove reports whether moveID is a legacy move for this species.
