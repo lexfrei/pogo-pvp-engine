@@ -1,0 +1,56 @@
+{
+  "name": "whiscash vs machamp, 0 shields each",
+  "attacker": {
+    "speciesId": "whiscash",
+    "iv": [
+      0,
+      15,
+      15
+    ],
+    "level": 44,
+    "fastMove": "MUD_SHOT",
+    "chargedMoves": [
+      "BLIZZARD",
+      "MUD_BOMB"
+    ],
+    "shields": 0
+  },
+  "defender": {
+    "speciesId": "machamp",
+    "iv": [
+      0,
+      15,
+      14
+    ],
+    "level": 24,
+    "fastMove": "COUNTER",
+    "chargedMoves": [
+      "CROSS_CHOP",
+      "ROCK_SLIDE"
+    ],
+    "shields": 0
+  },
+  "options": {
+    "maxTurns": 0
+  },
+  "expected": {
+    "winner": 0,
+    "turns": 24,
+    "hpRemaining": [
+      60,
+      0
+    ],
+    "energyAtEnd": [
+      18,
+      37
+    ],
+    "shieldsUsed": [
+      0,
+      0
+    ],
+    "chargedFired": [
+      2,
+      1
+    ]
+  }
+}
