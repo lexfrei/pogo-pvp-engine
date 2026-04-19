@@ -95,15 +95,22 @@ type Cup struct {
 //   - "type": Pokémon type list (e.g. ["water","grass"]).
 //   - "tag": species-tag list (e.g. ["mega"], ["shadoweligible"]).
 //   - "id": explicit species id list (e.g. ["medicham"]).
-//   - "evolution": pvpoke stores an evolution-stage threshold here
-//     as a single number (e.g. [1] for Little Cup = only species
-//     whose stage is ≤ 1). Values are stringified ("1"), not the
-//     "allow evolved forms only" semantics earlier godoc claimed.
+//   - "evolution": pvpoke stores a SET of evolution-stage numbers
+//     here as a JSON integer array. A species qualifies iff its
+//     stage is a member of that set (pvpoke's matcher is
+//     `values.indexOf(species.stage) > -1` — pure set membership,
+//     NOT a threshold). Stage codes: 0 = species that does not
+//     evolve and has no parent (ditto, unown, tauros), 1 = first
+//     stage with evolutions (bulbasaur), 2 = mid-stage (ivysaur),
+//     3 = final stage with a parent (venusaur). Little Cup ships
+//     `values: [1]` — only stage-1 evolvers, NOT "everything up to
+//     stage 1".
 //
 // Values is always a slice of strings. If pvpoke emits a numeric
 // element in the JSON (as it does for "evolution"), the parser
 // stringifies it — so ["1"], not [1]. Callers interpreting
-// FilterType="evolution" must parse the number themselves.
+// FilterType="evolution" must parse each number and match against
+// the species' evolution stage by set membership.
 type CupFilter struct {
 	FilterType string
 	Values     []string
@@ -182,10 +189,12 @@ type speciesRaw struct {
 	Family       *familyRaw   `json:"family"`
 	Tags         []string     `json:"tags"`
 	Released     bool         `json:"released"`
-	// ThirdMoveCost is raw because pvpoke emits `false` for species
-	// whose second charged move is intentionally never unlockable
-	// (e.g. smeargle, ditto) and an integer for the rest.
-	// convertSpecies normalises: integer → value, false/null → 0.
+	// ThirdMoveCost is raw because pvpoke's current payload emits
+	// the literal `false` for at least one species (smeargle is the
+	// only audited case in the current gamemaster; other species may
+	// do the same in future payloads). Everything else emits an
+	// integer. convertSpecies normalises: integer → value, false /
+	// null / absent → 0.
 	ThirdMoveCost json.RawMessage `json:"thirdMoveCost"`
 	BuddyDistance int             `json:"buddyDistance"`
 }
@@ -328,6 +337,15 @@ func normaliseCupFilterValues(raws []json.RawMessage) []string {
 	for _, raw := range raws {
 		text := strings.TrimSpace(string(raw))
 
+		// json.Unmarshal(raw, &string) accepts JSON null (leaves
+		// target untouched, no error) — but we want null to survive
+		// as the raw token "null" so no data is silently dropped.
+		if text == "null" {
+			out = append(out, text)
+
+			continue
+		}
+
 		var asString string
 
 		err := json.Unmarshal(raw, &asString)
@@ -449,12 +467,11 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 }
 
 // normaliseThirdMoveCost converts pvpoke's `thirdMoveCost` payload
-// into the engine integer. pvpoke emits a number for species whose
-// second charged move has a published unlock cost, and the literal
-// boolean `false` (or omits the field) for species whose second
-// move is never unlockable (smeargle, ditto). Both absent and false
-// normalise to 0 — the public Species.ThirdMoveCost=0 semantic
-// already means "no published cost", which covers both cases.
+// into the engine integer. Most species emit a number; smeargle in
+// the current gamemaster emits the literal boolean `false` (other
+// species may adopt the same shape). Absent / false / any non-int
+// shape → 0; the public Species.ThirdMoveCost=0 already means "no
+// published cost upstream".
 func normaliseThirdMoveCost(raw json.RawMessage) int {
 	if len(raw) == 0 {
 		return 0

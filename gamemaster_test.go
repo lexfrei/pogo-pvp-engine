@@ -593,6 +593,33 @@ func TestParseGamemaster_CupFilterMixedValueTypes(t *testing.T) {
 	}
 }
 
+// TestParseGamemaster_CupFilterExoticValueTypes pins the "no data
+// is lost" claim in normaliseCupFilterValues for JSON element shapes
+// the current pvpoke payload does not produce but might in future:
+// booleans, null, and nested objects/arrays should all survive as
+// their raw trimmed JSON text instead of getting silently dropped.
+func TestParseGamemaster_CupFilterExoticValueTypes(t *testing.T) {
+	t.Parallel()
+
+	raw := `{"id":"gamemaster","pokemon":[],"moves":[],"cups":[` +
+		`{"name":"exotic","title":"Exotic",` +
+		`"include":[{"filterType":"weird","values":[true,null,{"x":1}]}],` +
+		`"exclude":[]}` +
+		`]}`
+
+	gm, err := pogopvp.ParseGamemaster(strings.NewReader(raw))
+	if err != nil {
+		t.Fatalf("ParseGamemaster: %v (exotic values must not fail decode)", err)
+	}
+
+	values := gm.Cups["exotic"].Include[0].Values
+	want := []string{"true", "null", `{"x":1}`}
+
+	if !slices.Equal(values, want) {
+		t.Errorf("Values = %v, want %v (raw JSON pass-through)", values, want)
+	}
+}
+
 // TestParseGamemaster_BuddyDistance pins the buddyDistance field.
 // Fixture values: bulbasaur=3, machamp=3, azumarill=3, medicham=3,
 // whiscash=1 (from pvpoke payload).
