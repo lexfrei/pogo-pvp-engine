@@ -57,12 +57,20 @@ type Species struct {
 	PreEvolution string
 	Tags         []string
 	Released     bool
-	// ThirdMoveCost is the stardust cost to unlock a third charged
-	// move slot on this species; candy cost is typically the same
-	// numeric value (pvpoke stores one field and clients duplicate
-	// it for both currencies). 0 for species that have not had the
-	// field published upstream.
+	// ThirdMoveCost is the Pokémon GO stardust cost to unlock a
+	// second charged move slot on this species (pvpoke calls it
+	// "third move" because it counts fast + 2 charged; Niantic's
+	// in-game label is "second Charged Attack"). Stardust-only —
+	// candy cost is NOT the same number and must be computed from
+	// BuddyDistance (1km → 25 candy, 3km → 50, 5km → 75, 20km → 100).
+	// Zero for species that have no published cost upstream.
 	ThirdMoveCost int
+	// BuddyDistance is the distance (in kilometres) a trainer must
+	// walk with the buddy Pokémon to earn one candy. Used to derive
+	// the candy cost of a second charged move (see ThirdMoveCost
+	// comment). Zero for species whose payload does not publish the
+	// field.
+	BuddyDistance int
 }
 
 // Cup describes one pvpoke cup configuration: the rules for which
@@ -159,6 +167,7 @@ type speciesRaw struct {
 	Tags          []string     `json:"tags"`
 	Released      bool         `json:"released"`
 	ThirdMoveCost int          `json:"thirdMoveCost"`
+	BuddyDistance int          `json:"buddyDistance"`
 }
 
 // familyRaw mirrors the pvpoke `family` block on each species:
@@ -384,6 +393,7 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 		Tags:          raw.Tags,
 		Released:      raw.Released,
 		ThirdMoveCost: raw.ThirdMoveCost,
+		BuddyDistance: raw.BuddyDistance,
 	}, nil
 }
 

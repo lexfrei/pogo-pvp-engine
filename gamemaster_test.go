@@ -498,6 +498,40 @@ func TestParseGamemaster_Cups(t *testing.T) {
 	}
 }
 
+// TestParseGamemaster_BuddyDistance pins the buddyDistance field.
+// Fixture values: bulbasaur=3, machamp=3, azumarill=3, medicham=3,
+// whiscash=1 (from pvpoke payload).
+func TestParseGamemaster_BuddyDistance(t *testing.T) {
+	t.Parallel()
+
+	gm := loadSampleGamemaster(t)
+
+	whisc, ok := gm.Pokemon["whiscash"]
+	if !ok {
+		t.Fatal("whiscash missing")
+	}
+	if whisc.BuddyDistance != 1 {
+		t.Errorf("whiscash BuddyDistance = %d, want 1", whisc.BuddyDistance)
+	}
+
+	medi, ok := gm.Pokemon["medicham"]
+	if !ok {
+		t.Fatal("medicham missing")
+	}
+	if medi.BuddyDistance != 3 {
+		t.Errorf("medicham BuddyDistance = %d, want 3", medi.BuddyDistance)
+	}
+
+	ditto, ok := gm.Pokemon["ditto"]
+	if !ok {
+		t.Fatal("ditto missing")
+	}
+	if ditto.BuddyDistance != 0 {
+		t.Errorf("ditto BuddyDistance = %d, want 0 (absent from payload)",
+			ditto.BuddyDistance)
+	}
+}
+
 // TestParseGamemaster_ThirdMoveCost pins the thirdMoveCost field:
 // values in the fixture vary by species (bulbasaur=10000, medicham /
 // machamp / azumarill=50000, whiscash=10000). Absence in the payload
