@@ -201,6 +201,54 @@ func TestParseGamemaster_LegacyMoves(t *testing.T) {
 	}
 }
 
+func TestParseGamemaster_EliteMoves(t *testing.T) {
+	t.Parallel()
+
+	gm := loadSampleGamemaster(t)
+
+	machamp := gm.Pokemon["machamp"]
+	wantElite := []string{"KARATE_CHOP", "STONE_EDGE", "SUBMISSION", "PAYBACK"}
+
+	if !slices.Equal(machamp.EliteMoves, wantElite) {
+		t.Errorf("machamp EliteMoves = %v, want %v", machamp.EliteMoves, wantElite)
+	}
+
+	if !pogopvp.IsEliteMove(&machamp, "KARATE_CHOP") {
+		t.Error("IsEliteMove(machamp, KARATE_CHOP) = false, want true")
+	}
+	if !pogopvp.IsEliteMove(&machamp, "STONE_EDGE") {
+		t.Error("IsEliteMove(machamp, STONE_EDGE) = false, want true")
+	}
+	if pogopvp.IsEliteMove(&machamp, "COUNTER") {
+		t.Error("IsEliteMove(machamp, COUNTER) = true, want false (regular)")
+	}
+
+	// Legacy / elite disjointness: medicham has PSYCHIC and
+	// POWER_UP_PUNCH in legacyMoves. Neither is in eliteMoves, so
+	// IsEliteMove must return false even though IsLegacyMove=true.
+	medi := gm.Pokemon["medicham"]
+	if pogopvp.IsEliteMove(&medi, "PSYCHIC") {
+		t.Error("IsEliteMove(medicham, PSYCHIC) = true, want false (legacy, not elite)")
+	}
+	if pogopvp.IsEliteMove(&medi, "POWER_UP_PUNCH") {
+		t.Error("IsEliteMove(medicham, POWER_UP_PUNCH) = true, want false (legacy, not elite)")
+	}
+	if len(medi.EliteMoves) != 0 {
+		t.Errorf("medicham EliteMoves = %v, want empty (fixture has no eliteMoves block)", medi.EliteMoves)
+	}
+
+	// Species without EliteMoves block reports false cleanly.
+	bulb := gm.Pokemon["bulbasaur"]
+	if pogopvp.IsEliteMove(&bulb, "VINE_WHIP") {
+		t.Error("IsEliteMove(bulbasaur, VINE_WHIP) = true, want false")
+	}
+
+	// Defensive path: nil species returns false, not a panic.
+	if pogopvp.IsEliteMove(nil, "COUNTER") {
+		t.Error("IsEliteMove(nil, COUNTER) = true, want false")
+	}
+}
+
 func TestParseGamemaster_FastMove(t *testing.T) {
 	t.Parallel()
 

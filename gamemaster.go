@@ -37,10 +37,22 @@ type Move struct {
 
 // Species is one Pokémon entry from the gamemaster. Base stats and types
 // are authoritative for CP / stat-product math; the move slices list legal
-// choices keyed into [Gamemaster.Moves]. LegacyMoves lists move ids that
-// are legacy on THIS species specifically (community-day, event-exclusive,
-// ETM-only). The same move id can be regular on one species and legacy
-// on another — legacy is a per-species property, not per-move.
+// choices keyed into [Gamemaster.Moves].
+//
+// LegacyMoves and EliteMoves are disjoint pvpoke categories of restricted
+// moves:
+//   - LegacyMoves — moves permanently removed from the learn-pool and
+//     only retained on Pokémon that already knew them before the removal
+//     (e.g. Grimer ACID, Chansey PSYBEAM). Cannot be taught; the player
+//     either has one already or will never get one on that species.
+//   - EliteMoves — moves locked behind Elite TM, Community Day events,
+//     or limited-time research (e.g. Venusaur FRENZY_PLANT, Quagsire
+//     AQUA_TAIL, Charizard BLAST_BURN). Available, but not via regular
+//     TMs.
+//
+// Both are per-species: the same move id can be regular on one species
+// and restricted on another.
+//
 // Evolutions and PreEvolution map the pvpoke `family` block: Evolutions
 // lists direct children (can branch, e.g. eevee), PreEvolution names the
 // immediate parent ("" for base forms). Chain traversal is the caller's
@@ -54,6 +66,7 @@ type Species struct {
 	FastMoves    []string
 	ChargedMoves []string
 	LegacyMoves  []string
+	EliteMoves   []string
 	Evolutions   []string
 	PreEvolution string
 	Tags         []string
@@ -186,6 +199,7 @@ type speciesRaw struct {
 	FastMoves    []string     `json:"fastMoves"`
 	ChargedMoves []string     `json:"chargedMoves"`
 	LegacyMoves  []string     `json:"legacyMoves"`
+	EliteMoves   []string     `json:"eliteMoves"`
 	Family       *familyRaw   `json:"family"`
 	Tags         []string     `json:"tags"`
 	Released     bool         `json:"released"`
@@ -414,21 +428,9 @@ func indexMoves(gamemaster *Gamemaster, entries []moveRaw) error {
 // The pvpoke "none" placeholder in the types slice is normalised away
 // here so Species.Types contains only real type identifiers.
 func convertSpecies(index int, raw *speciesRaw) (Species, error) {
-	if raw.SpeciesID == "" {
-		return Species{}, fmt.Errorf("%w: pokemon[%d] missing speciesId", ErrGamemasterInvalid, index)
-	}
-
-	if raw.Dex < 1 {
-		return Species{}, fmt.Errorf("%w: pokemon[%d] (%s) dex=%d < 1",
-			ErrGamemasterInvalid, index, raw.SpeciesID, raw.Dex)
-	}
-
-	if raw.BaseStats.Atk <= 0 || raw.BaseStats.Def <= 0 || raw.BaseStats.HP <= 0 {
-		return Species{}, fmt.Errorf(
-			"%w: pokemon[%d] (%s) non-positive baseStats atk=%d def=%d hp=%d",
-			ErrGamemasterInvalid, index, raw.SpeciesID,
-			raw.BaseStats.Atk, raw.BaseStats.Def, raw.BaseStats.HP,
-		)
+	err := validateSpeciesRaw(index, raw)
+	if err != nil {
+		return Species{}, err
 	}
 
 	types := normaliseTypes(raw.Types)
@@ -457,6 +459,7 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 		FastMoves:     raw.FastMoves,
 		ChargedMoves:  raw.ChargedMoves,
 		LegacyMoves:   raw.LegacyMoves,
+		EliteMoves:    raw.EliteMoves,
 		Evolutions:    evolutions,
 		PreEvolution:  preEvolution,
 		Tags:          raw.Tags,
@@ -464,6 +467,32 @@ func convertSpecies(index int, raw *speciesRaw) (Species, error) {
 		ThirdMoveCost: normaliseThirdMoveCost(raw.ThirdMoveCost),
 		BuddyDistance: raw.BuddyDistance,
 	}, nil
+}
+
+// validateSpeciesRaw enforces the minimum shape required before
+// Species construction: non-empty id, Dex >= 1, strictly positive
+// base stats. pvpoke never violates these — anything weaker is a
+// corrupted row that we fail loudly on so downstream CP / stat-
+// product math doesn't produce ghost creatures.
+func validateSpeciesRaw(index int, raw *speciesRaw) error {
+	if raw.SpeciesID == "" {
+		return fmt.Errorf("%w: pokemon[%d] missing speciesId", ErrGamemasterInvalid, index)
+	}
+
+	if raw.Dex < 1 {
+		return fmt.Errorf("%w: pokemon[%d] (%s) dex=%d < 1",
+			ErrGamemasterInvalid, index, raw.SpeciesID, raw.Dex)
+	}
+
+	if raw.BaseStats.Atk <= 0 || raw.BaseStats.Def <= 0 || raw.BaseStats.HP <= 0 {
+		return fmt.Errorf(
+			"%w: pokemon[%d] (%s) non-positive baseStats atk=%d def=%d hp=%d",
+			ErrGamemasterInvalid, index, raw.SpeciesID,
+			raw.BaseStats.Atk, raw.BaseStats.Def, raw.BaseStats.HP,
+		)
+	}
+
+	return nil
 }
 
 // normaliseThirdMoveCost converts pvpoke's `thirdMoveCost` payload
@@ -487,18 +516,35 @@ func normaliseThirdMoveCost(raw json.RawMessage) int {
 	return 0
 }
 
-// IsLegacyMove reports whether moveID is a legacy move for this species.
-// Legacy in pvpoke semantics = community-day exclusive, event-exclusive,
-// or ETM-only (not accessible via regular TM at the time of rollout).
-// The same move id can be regular on one species and legacy on another —
-// the lookup is scoped to the species passed in. A nil species returns
-// false defensively.
+// IsLegacyMove reports whether moveID is in this species' pvpoke
+// `legacyMoves` list — the narrow category of moves permanently
+// removed from the learn-pool. Only Pokémon that already knew the
+// move before the removal still have it; new catches never can.
+// Example: Grimer ACID (fast), Chansey PSYBEAM. Disjoint from
+// [IsEliteMove]: legacy is "never obtainable again", elite is
+// "obtainable but gated behind Elite TM / Community Day".
+// A nil species returns false defensively.
 func IsLegacyMove(species *Species, moveID string) bool {
 	if species == nil {
 		return false
 	}
 
 	return slices.Contains(species.LegacyMoves, moveID)
+}
+
+// IsEliteMove reports whether moveID is in this species' pvpoke
+// `eliteMoves` list — moves locked behind an Elite TM, a Community
+// Day event, or limited-time research. Available to players, but
+// not via regular Fast/Charged TMs. Example: Venusaur FRENZY_PLANT,
+// Quagsire AQUA_TAIL, Charizard BLAST_BURN. Disjoint from
+// [IsLegacyMove]: both categories can exist on the same species
+// independently. A nil species returns false defensively.
+func IsEliteMove(species *Species, moveID string) bool {
+	if species == nil {
+		return false
+	}
+
+	return slices.Contains(species.EliteMoves, moveID)
 }
 
 // normaliseTypes drops the pvpoke placeholder "none" and any empty strings,
