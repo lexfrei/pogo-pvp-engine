@@ -15,9 +15,9 @@ func TestParseForm_Valid(t *testing.T) {
 		in   string
 		want pogopvp.Form
 	}{
-		{"regular", pogopvp.FormRegular},
-		{"shadow", pogopvp.FormShadow},
-		{"purified", pogopvp.FormPurified},
+		{formRegular, pogopvp.FormRegular},
+		{formShadow, pogopvp.FormShadow},
+		{formPurified, pogopvp.FormPurified},
 	}
 
 	for _, tc := range cases {
@@ -61,9 +61,9 @@ func TestForm_String(t *testing.T) {
 		form pogopvp.Form
 		want string
 	}{
-		{pogopvp.FormRegular, "regular"},
-		{pogopvp.FormShadow, "shadow"},
-		{pogopvp.FormPurified, "purified"},
+		{pogopvp.FormRegular, formRegular},
+		{pogopvp.FormShadow, formShadow},
+		{pogopvp.FormPurified, formPurified},
 	}
 
 	for _, tc := range cases {
@@ -88,13 +88,13 @@ func TestNewPokemon_Valid(t *testing.T) {
 		level   float64
 		xl      bool
 	}{
-		{"min level", "whiscash", pogopvp.FormRegular, 1.0, false},
-		{"half level", "whiscash", pogopvp.FormRegular, 21.5, false},
+		{"min level", speciesWhiscash, pogopvp.FormRegular, 1.0, false},
+		{"half level", speciesWhiscash, pogopvp.FormRegular, 21.5, false},
 		{"cap without xl", "medicham", pogopvp.FormRegular, 40.0, false},
-		{"xl over cap", "registeel", pogopvp.FormRegular, 50.0, true},
-		{"max level xl", "registeel", pogopvp.FormRegular, 51.0, true},
-		{"shadow", "machamp", pogopvp.FormShadow, 40.0, false},
-		{"purified", "machamp", pogopvp.FormPurified, 40.0, false},
+		{"xl over cap", speciesRegisteel, pogopvp.FormRegular, 50.0, true},
+		{"max level xl", speciesRegisteel, pogopvp.FormRegular, 51.0, true},
+		{"shadow", speciesMachamp, pogopvp.FormShadow, 40.0, false},
+		{"purified", speciesMachamp, pogopvp.FormPurified, 40.0, false},
 	}
 
 	for _, tc := range cases {
@@ -137,12 +137,12 @@ func TestNewPokemon_Invalid(t *testing.T) {
 		target  error
 	}{
 		{"empty species", "", pogopvp.FormRegular, 40.0, false, pogopvp.ErrEmptySpeciesID},
-		{"level below min", "whiscash", pogopvp.FormRegular, 0.5, false, pogopvp.ErrInvalidLevel},
-		{"level above max", "whiscash", pogopvp.FormRegular, 51.5, true, pogopvp.ErrInvalidLevel},
-		{"non-half level", "whiscash", pogopvp.FormRegular, 40.25, false, pogopvp.ErrInvalidLevel},
-		{"non-xl above 40 without xl true", "whiscash", pogopvp.FormRegular, 41.5, false, pogopvp.ErrInvalidLevel},
-		{"unknown form value far", "whiscash", pogopvp.Form(99), 40.0, false, pogopvp.ErrInvalidForm},
-		{"unknown form value boundary", "whiscash", pogopvp.Form(3), 40.0, false, pogopvp.ErrInvalidForm},
+		{caseLevelBelowMin, speciesWhiscash, pogopvp.FormRegular, 0.5, false, pogopvp.ErrInvalidLevel},
+		{caseLevelAboveMax, speciesWhiscash, pogopvp.FormRegular, 51.5, true, pogopvp.ErrInvalidLevel},
+		{"non-half level", speciesWhiscash, pogopvp.FormRegular, 40.25, false, pogopvp.ErrInvalidLevel},
+		{"non-xl above 40 without xl true", speciesWhiscash, pogopvp.FormRegular, 41.5, false, pogopvp.ErrInvalidLevel},
+		{"unknown form value far", speciesWhiscash, pogopvp.Form(99), 40.0, false, pogopvp.ErrInvalidForm},
+		{"unknown form value boundary", speciesWhiscash, pogopvp.Form(3), 40.0, false, pogopvp.ErrInvalidForm},
 	}
 
 	for _, tc := range cases {
@@ -164,7 +164,7 @@ func TestNewPokemon_RejectsNaNLevel(t *testing.T) {
 	t.Parallel()
 
 	iv := pogopvp.MustNewIV(0, 15, 15)
-	_, err := pogopvp.NewPokemon("whiscash", pogopvp.FormRegular, iv, math.NaN(), false)
+	_, err := pogopvp.NewPokemon(speciesWhiscash, pogopvp.FormRegular, iv, math.NaN(), false)
 	if err == nil {
 		t.Fatal("NewPokemon with NaN level expected error")
 	}
@@ -183,9 +183,9 @@ func TestNewPokemon_RejectsOutOfRangeIV(t *testing.T) {
 		name string
 		iv   pogopvp.IV
 	}{
-		{"atk over max", pogopvp.IV{Atk: 200, Def: 0, Sta: 0}},
-		{"def over max", pogopvp.IV{Atk: 0, Def: 16, Sta: 0}},
-		{"sta over max", pogopvp.IV{Atk: 0, Def: 0, Sta: 255}},
+		{caseAtkOverMax, pogopvp.IV{Atk: 200, Def: 0, Sta: 0}},
+		{caseDefOverMax, pogopvp.IV{Atk: 0, Def: 16, Sta: 0}},
+		{caseStaOverMax, pogopvp.IV{Atk: 0, Def: 0, Sta: 255}},
 	}
 
 	for _, tc := range cases {

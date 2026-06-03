@@ -71,7 +71,7 @@ func TestParseGamemaster_PokemonFields(t *testing.T) {
 	if bulb.BaseStats.Atk != 118 || bulb.BaseStats.Def != 111 || bulb.BaseStats.HP != 128 {
 		t.Errorf("bulbasaur BaseStats = %+v, want {118, 111, 128}", bulb.BaseStats)
 	}
-	wantTypes := []string{"grass", "poison"}
+	wantTypes := []string{pogopvp.TypeGrass, pogopvp.TypePoison}
 	if !slices.Equal(bulb.Types, wantTypes) {
 		t.Errorf("bulbasaur Types = %v, want %v", bulb.Types, wantTypes)
 	}
@@ -274,7 +274,7 @@ func TestParseGamemaster_FastMove(t *testing.T) {
 	if vineWhip.Turns != 2 {
 		t.Errorf("VINE_WHIP Turns = %d, want 2", vineWhip.Turns)
 	}
-	if vineWhip.Type != "grass" {
+	if vineWhip.Type != pogopvp.TypeGrass {
 		t.Errorf("VINE_WHIP Type = %q, want grass", vineWhip.Type)
 	}
 }
@@ -442,7 +442,7 @@ func TestParseGamemaster_MonotypeNormalisation(t *testing.T) {
 		t.Fatal("machamp missing from parsed Pokemon map")
 	}
 
-	wantTypes := []string{"fighting"}
+	wantTypes := []string{pogopvp.TypeFighting}
 	if !slices.Equal(machamp.Types, wantTypes) {
 		t.Errorf("machamp Types = %v, want %v", machamp.Types, wantTypes)
 	}
@@ -528,7 +528,7 @@ func TestParseGamemaster_Cups(t *testing.T) {
 	if len(spring.Include) != 1 {
 		t.Fatalf("spring.Include len = %d, want 1", len(spring.Include))
 	}
-	wantTypes := []string{"water", "grass", "fairy"}
+	wantTypes := []string{pogopvp.TypeWater, pogopvp.TypeGrass, pogopvp.TypeFairy}
 	if !slices.Equal(spring.Include[0].Values, wantTypes) {
 		t.Errorf("spring.Include[0].Values = %v, want %v",
 			spring.Include[0].Values, wantTypes)
@@ -631,7 +631,7 @@ func TestParseGamemaster_CupFilterMixedValueTypes(t *testing.T) {
 		t.Errorf("evolution filter: Values = %v, want [\"1\"]", cup.Include[0].Values)
 	}
 
-	if !slices.Equal(cup.Include[1].Values, []string{"water", "grass"}) {
+	if !slices.Equal(cup.Include[1].Values, []string{pogopvp.TypeWater, pogopvp.TypeGrass}) {
 		t.Errorf("type filter: Values = %v, want [\"water\",\"grass\"]",
 			cup.Include[1].Values)
 	}
