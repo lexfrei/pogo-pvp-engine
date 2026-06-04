@@ -15,11 +15,11 @@ func TestStabFactor(t *testing.T) {
 		attackerTypes []string
 		want          float64
 	}{
-		{"stab match first", "fire", []string{"fire", "poison"}, pogopvp.StabMultiplier},
-		{"stab match second", "psychic", []string{"fighting", "psychic"}, pogopvp.StabMultiplier},
-		{"no stab", "fire", []string{"water"}, pogopvp.NeutralMatchup},
+		{"stab match first", pogopvp.TypeFire, []string{pogopvp.TypeFire, pogopvp.TypePoison}, pogopvp.StabMultiplier},
+		{"stab match second", pogopvp.TypePsychic, []string{pogopvp.TypeFighting, pogopvp.TypePsychic}, pogopvp.StabMultiplier},
+		{"no stab", pogopvp.TypeFire, []string{pogopvp.TypeWater}, pogopvp.NeutralMatchup},
 		{"stab case insensitive", "Fire", []string{"FIRE"}, pogopvp.StabMultiplier},
-		{"empty types", "fire", nil, pogopvp.NeutralMatchup},
+		{"empty types", pogopvp.TypeFire, nil, pogopvp.NeutralMatchup},
 	}
 
 	for _, tc := range cases {

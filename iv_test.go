@@ -107,9 +107,9 @@ func TestIV_Valid(t *testing.T) {
 	}{
 		{"zero value", pogopvp.IV{}, true},
 		{"all max", pogopvp.IV{Atk: 15, Def: 15, Sta: 15}, true},
-		{"atk over max", pogopvp.IV{Atk: 16, Def: 0, Sta: 0}, false},
-		{"def over max", pogopvp.IV{Atk: 0, Def: 200, Sta: 0}, false},
-		{"sta over max", pogopvp.IV{Atk: 0, Def: 0, Sta: 255}, false},
+		{caseAtkOverMax, pogopvp.IV{Atk: 16, Def: 0, Sta: 0}, false},
+		{caseDefOverMax, pogopvp.IV{Atk: 0, Def: 200, Sta: 0}, false},
+		{caseStaOverMax, pogopvp.IV{Atk: 0, Def: 0, Sta: 255}, false},
 	}
 
 	for _, tc := range cases {

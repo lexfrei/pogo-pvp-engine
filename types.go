@@ -21,6 +21,30 @@ const (
 	ShadowDefFactor = 0.83333331
 )
 
+// Pokémon type names, used as keys and list entries in the effectiveness
+// table. Defined as named constants so the table and its tests share a
+// single source of truth for the 18 canonical type identifiers.
+const (
+	TypeNormal   = "normal"
+	TypeFighting = "fighting"
+	TypeFlying   = "flying"
+	TypePoison   = "poison"
+	TypeGround   = "ground"
+	TypeRock     = "rock"
+	TypeBug      = "bug"
+	TypeGhost    = "ghost"
+	TypeSteel    = "steel"
+	TypeFire     = "fire"
+	TypeWater    = "water"
+	TypeGrass    = "grass"
+	TypeElectric = "electric"
+	TypePsychic  = "psychic"
+	TypeIce      = "ice"
+	TypeDragon   = "dragon"
+	TypeDark     = "dark"
+	TypeFairy    = "fairy"
+)
+
 // typeTraits bundles the three lists that describe a defending type's
 // interaction with the 18 attacking types. Weaknesses contribute
 // SuperEffective, resistances contribute Resisted, and immunities
@@ -37,77 +61,77 @@ type typeTraits struct {
 //
 //nolint:gochecknoglobals // immutable effectiveness table driven from the Niantic type chart
 var typeTraitsTable = map[string]typeTraits{
-	"normal":   {weaknesses: []string{"fighting"}, immunities: []string{"ghost"}},
-	"fighting": {resistances: []string{"rock", "bug", "dark"}, weaknesses: []string{"flying", "psychic", "fairy"}},
-	"flying": {
-		resistances: []string{"fighting", "bug", "grass"},
-		weaknesses:  []string{"rock", "electric", "ice"},
-		immunities:  []string{"ground"},
+	TypeNormal:   {weaknesses: []string{TypeFighting}, immunities: []string{TypeGhost}},
+	TypeFighting: {resistances: []string{TypeRock, TypeBug, TypeDark}, weaknesses: []string{TypeFlying, TypePsychic, TypeFairy}},
+	TypeFlying: {
+		resistances: []string{TypeFighting, TypeBug, TypeGrass},
+		weaknesses:  []string{TypeRock, TypeElectric, TypeIce},
+		immunities:  []string{TypeGround},
 	},
-	"poison": {
-		resistances: []string{"fighting", "poison", "bug", "fairy", "grass"},
-		weaknesses:  []string{"ground", "psychic"},
+	TypePoison: {
+		resistances: []string{TypeFighting, TypePoison, TypeBug, TypeFairy, TypeGrass},
+		weaknesses:  []string{TypeGround, TypePsychic},
 	},
-	"ground": {
-		resistances: []string{"poison", "rock"},
-		weaknesses:  []string{"water", "grass", "ice"},
-		immunities:  []string{"electric"},
+	TypeGround: {
+		resistances: []string{TypePoison, TypeRock},
+		weaknesses:  []string{TypeWater, TypeGrass, TypeIce},
+		immunities:  []string{TypeElectric},
 	},
-	"rock": {
-		resistances: []string{"normal", "flying", "poison", "fire"},
-		weaknesses:  []string{"fighting", "ground", "steel", "water", "grass"},
+	TypeRock: {
+		resistances: []string{TypeNormal, TypeFlying, TypePoison, TypeFire},
+		weaknesses:  []string{TypeFighting, TypeGround, TypeSteel, TypeWater, TypeGrass},
 	},
-	"bug": {
-		resistances: []string{"fighting", "ground", "grass"},
-		weaknesses:  []string{"flying", "rock", "fire"},
+	TypeBug: {
+		resistances: []string{TypeFighting, TypeGround, TypeGrass},
+		weaknesses:  []string{TypeFlying, TypeRock, TypeFire},
 	},
-	"ghost": {
-		resistances: []string{"poison", "bug"},
-		weaknesses:  []string{"ghost", "dark"},
-		immunities:  []string{"normal", "fighting"},
+	TypeGhost: {
+		resistances: []string{TypePoison, TypeBug},
+		weaknesses:  []string{TypeGhost, TypeDark},
+		immunities:  []string{TypeNormal, TypeFighting},
 	},
-	"steel": {
-		resistances: []string{"normal", "flying", "rock", "bug", "steel", "grass", "psychic", "ice", "dragon", "fairy"},
-		weaknesses:  []string{"fighting", "ground", "fire"},
-		immunities:  []string{"poison"},
+	TypeSteel: {
+		resistances: []string{TypeNormal, TypeFlying, TypeRock, TypeBug, TypeSteel, TypeGrass, TypePsychic, TypeIce, TypeDragon, TypeFairy},
+		weaknesses:  []string{TypeFighting, TypeGround, TypeFire},
+		immunities:  []string{TypePoison},
 	},
-	"fire": {
-		resistances: []string{"bug", "steel", "fire", "grass", "ice", "fairy"},
-		weaknesses:  []string{"ground", "rock", "water"},
+	TypeFire: {
+		resistances: []string{TypeBug, TypeSteel, TypeFire, TypeGrass, TypeIce, TypeFairy},
+		weaknesses:  []string{TypeGround, TypeRock, TypeWater},
 	},
-	"water": {
-		resistances: []string{"steel", "fire", "water", "ice"},
-		weaknesses:  []string{"grass", "electric"},
+	TypeWater: {
+		resistances: []string{TypeSteel, TypeFire, TypeWater, TypeIce},
+		weaknesses:  []string{TypeGrass, TypeElectric},
 	},
-	"grass": {
-		resistances: []string{"ground", "water", "grass", "electric"},
-		weaknesses:  []string{"flying", "poison", "bug", "fire", "ice"},
+	TypeGrass: {
+		resistances: []string{TypeGround, TypeWater, TypeGrass, TypeElectric},
+		weaknesses:  []string{TypeFlying, TypePoison, TypeBug, TypeFire, TypeIce},
 	},
-	"electric": {
-		resistances: []string{"flying", "steel", "electric"},
-		weaknesses:  []string{"ground"},
+	TypeElectric: {
+		resistances: []string{TypeFlying, TypeSteel, TypeElectric},
+		weaknesses:  []string{TypeGround},
 	},
-	"psychic": {
-		resistances: []string{"fighting", "psychic"},
-		weaknesses:  []string{"bug", "ghost", "dark"},
+	TypePsychic: {
+		resistances: []string{TypeFighting, TypePsychic},
+		weaknesses:  []string{TypeBug, TypeGhost, TypeDark},
 	},
-	"ice": {
-		resistances: []string{"ice"},
-		weaknesses:  []string{"fighting", "fire", "steel", "rock"},
+	TypeIce: {
+		resistances: []string{TypeIce},
+		weaknesses:  []string{TypeFighting, TypeFire, TypeSteel, TypeRock},
 	},
-	"dragon": {
-		resistances: []string{"fire", "water", "grass", "electric"},
-		weaknesses:  []string{"dragon", "ice", "fairy"},
+	TypeDragon: {
+		resistances: []string{TypeFire, TypeWater, TypeGrass, TypeElectric},
+		weaknesses:  []string{TypeDragon, TypeIce, TypeFairy},
 	},
-	"dark": {
-		resistances: []string{"ghost", "dark"},
-		weaknesses:  []string{"fighting", "fairy", "bug"},
-		immunities:  []string{"psychic"},
+	TypeDark: {
+		resistances: []string{TypeGhost, TypeDark},
+		weaknesses:  []string{TypeFighting, TypeFairy, TypeBug},
+		immunities:  []string{TypePsychic},
 	},
-	"fairy": {
-		resistances: []string{"fighting", "bug", "dark"},
-		weaknesses:  []string{"poison", "steel"},
-		immunities:  []string{"dragon"},
+	TypeFairy: {
+		resistances: []string{TypeFighting, TypeBug, TypeDark},
+		weaknesses:  []string{TypePoison, TypeSteel},
+		immunities:  []string{TypeDragon},
 	},
 }
 

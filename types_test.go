@@ -26,16 +26,16 @@ func TestTypeEffectiveness_Single(t *testing.T) {
 		defTypes   []string
 		wantResult float64
 	}{
-		{"fire vs grass (super-effective)", "fire", []string{"grass"}, 1.6},
-		{"grass vs fire (resisted)", "grass", []string{"fire"}, 0.625},
-		{"normal vs ghost (immune)", "normal", []string{"ghost"}, 0.390625},
-		{"ghost vs normal (immune)", "ghost", []string{"normal"}, 0.390625},
-		{"ground vs electric (immune one-way)", "ground", []string{"electric"}, 1.6},
-		{"electric vs ground (immune)", "electric", []string{"ground"}, 0.390625},
-		{"water vs water (resisted)", "water", []string{"water"}, 0.625},
-		{"normal vs normal (neutral)", "normal", []string{"normal"}, 1.0},
-		{"dragon vs fairy (immune)", "dragon", []string{"fairy"}, 0.390625},
-		{"poison vs steel (immune)", "poison", []string{"steel"}, 0.390625},
+		{"fire vs grass (super-effective)", pogopvp.TypeFire, []string{pogopvp.TypeGrass}, 1.6},
+		{"grass vs fire (resisted)", pogopvp.TypeGrass, []string{pogopvp.TypeFire}, 0.625},
+		{"normal vs ghost (immune)", pogopvp.TypeNormal, []string{pogopvp.TypeGhost}, 0.390625},
+		{"ghost vs normal (immune)", pogopvp.TypeGhost, []string{pogopvp.TypeNormal}, 0.390625},
+		{"ground vs electric (immune one-way)", pogopvp.TypeGround, []string{pogopvp.TypeElectric}, 1.6},
+		{"electric vs ground (immune)", pogopvp.TypeElectric, []string{pogopvp.TypeGround}, 0.390625},
+		{"water vs water (resisted)", pogopvp.TypeWater, []string{pogopvp.TypeWater}, 0.625},
+		{"normal vs normal (neutral)", pogopvp.TypeNormal, []string{pogopvp.TypeNormal}, 1.0},
+		{"dragon vs fairy (immune)", pogopvp.TypeDragon, []string{pogopvp.TypeFairy}, 0.390625},
+		{"poison vs steel (immune)", pogopvp.TypePoison, []string{pogopvp.TypeSteel}, 0.390625},
 	}
 
 	for _, tc := range cases {
@@ -60,12 +60,12 @@ func TestTypeEffectiveness_Dual(t *testing.T) {
 		defTypes   []string
 		wantResult float64
 	}{
-		{"grass vs water/ground (double super-effective)", "grass", []string{"water", "ground"}, 2.56},
-		{"ice vs flying/dragon (double super-effective)", "ice", []string{"flying", "dragon"}, 2.56},
-		{"fire vs water/rock (both resisted)", "fire", []string{"water", "rock"}, 0.390625},
-		{"fire vs water/grass (super then resist = neutral)", "fire", []string{"water", "grass"}, 1.0},
-		{"bug vs fire/flying (resist then resist)", "bug", []string{"fire", "flying"}, 0.390625},
-		{"fighting vs ghost/psychic (immune then resist)", "fighting", []string{"ghost", "psychic"}, 0.244140625},
+		{"grass vs water/ground (double super-effective)", pogopvp.TypeGrass, []string{pogopvp.TypeWater, pogopvp.TypeGround}, 2.56},
+		{"ice vs flying/dragon (double super-effective)", pogopvp.TypeIce, []string{pogopvp.TypeFlying, pogopvp.TypeDragon}, 2.56},
+		{"fire vs water/rock (both resisted)", pogopvp.TypeFire, []string{pogopvp.TypeWater, pogopvp.TypeRock}, 0.390625},
+		{"fire vs water/grass (super then resist = neutral)", pogopvp.TypeFire, []string{pogopvp.TypeWater, pogopvp.TypeGrass}, 1.0},
+		{"bug vs fire/flying (resist then resist)", pogopvp.TypeBug, []string{pogopvp.TypeFire, pogopvp.TypeFlying}, 0.390625},
+		{"fighting vs ghost/psychic (immune then resist)", pogopvp.TypeFighting, []string{pogopvp.TypeGhost, pogopvp.TypePsychic}, 0.244140625},
 	}
 
 	for _, tc := range cases {
@@ -94,11 +94,11 @@ func TestTypeEffectiveness_UnknownType(t *testing.T) {
 
 	// Unknown attacker type: no entries match, defender is taken as a
 	// neutral passer-through. Returns 1.0 without panicking.
-	if got := pogopvp.TypeEffectiveness("nonexistent", []string{"grass"}); got != 1.0 {
+	if got := pogopvp.TypeEffectiveness("nonexistent", []string{pogopvp.TypeGrass}); got != 1.0 {
 		t.Errorf("unknown attacker type = %.6f, want 1.0 neutral", got)
 	}
 
-	if got := pogopvp.TypeEffectiveness("fire", []string{"nonexistent"}); got != 1.0 {
+	if got := pogopvp.TypeEffectiveness(pogopvp.TypeFire, []string{"nonexistent"}); got != 1.0 {
 		t.Errorf("unknown defender type = %.6f, want 1.0 neutral", got)
 	}
 }

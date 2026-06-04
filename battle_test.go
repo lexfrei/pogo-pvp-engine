@@ -39,11 +39,11 @@ func TestSimulate_SymmetricTie(t *testing.T) {
 	t.Parallel()
 
 	move := pogopvp.Move{
-		ID: "TACKLE", Type: "normal",
+		ID: moveTackle, Type: pogopvp.TypeNormal,
 		Power: 3, EnergyGain: 3, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
-	combatant := newTestCombatant(150, 100, 100, []string{"normal"}, move, 50.0)
+	combatant := newTestCombatant(150, 100, 100, []string{pogopvp.TypeNormal}, move, 50.0)
 
 	result := mustSimulate(t, &combatant, &combatant, pogopvp.BattleOptions{MaxTurns: 200})
 
@@ -61,11 +61,11 @@ func TestSimulate_SymmetricTie(t *testing.T) {
 func TestSimulate_FasterWins(t *testing.T) {
 	t.Parallel()
 
-	fast := pogopvp.Move{ID: "FAST", Type: "normal", Power: 3, EnergyGain: 3, Turns: 1, Category: pogopvp.MoveCategoryFast}
-	slow := pogopvp.Move{ID: "SLOW", Type: "normal", Power: 3, EnergyGain: 3, Turns: 2, Category: pogopvp.MoveCategoryFast}
+	fast := pogopvp.Move{ID: "FAST", Type: pogopvp.TypeNormal, Power: 3, EnergyGain: 3, Turns: 1, Category: pogopvp.MoveCategoryFast}
+	slow := pogopvp.Move{ID: "SLOW", Type: pogopvp.TypeNormal, Power: 3, EnergyGain: 3, Turns: 2, Category: pogopvp.MoveCategoryFast}
 
-	attacker := newTestCombatant(150, 100, 100, []string{"normal"}, fast, 50.0)
-	defender := newTestCombatant(150, 100, 100, []string{"normal"}, slow, 50.0)
+	attacker := newTestCombatant(150, 100, 100, []string{pogopvp.TypeNormal}, fast, 50.0)
+	defender := newTestCombatant(150, 100, 100, []string{pogopvp.TypeNormal}, slow, 50.0)
 
 	result := mustSimulate(t, &attacker, &defender, pogopvp.BattleOptions{MaxTurns: 500})
 
@@ -87,14 +87,14 @@ func TestSimulate_EnergyAccumulates(t *testing.T) {
 	t.Parallel()
 
 	move := pogopvp.Move{
-		ID: "GAIN", Type: "normal",
+		ID: moveGain, Type: pogopvp.TypeNormal,
 		Power: 1, EnergyGain: 5, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 
 	// Tanky defender so neither side faints within 10 turns.
-	attacker := newTestCombatant(150, 100, 300, []string{"normal"}, move, 50.0)
-	defender := newTestCombatant(80, 300, 300, []string{"normal"}, move, 50.0)
+	attacker := newTestCombatant(150, 100, 300, []string{pogopvp.TypeNormal}, move, 50.0)
+	defender := newTestCombatant(80, 300, 300, []string{pogopvp.TypeNormal}, move, 50.0)
 
 	result := mustSimulate(t, &attacker, &defender, pogopvp.BattleOptions{MaxTurns: 10})
 
@@ -115,14 +115,14 @@ func TestSimulate_EnergyCaps(t *testing.T) {
 	t.Parallel()
 
 	move := pogopvp.Move{
-		ID: "GAIN", Type: "normal",
+		ID: moveGain, Type: pogopvp.TypeNormal,
 		Power: 1, EnergyGain: 20, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 
 	// Enough HP to survive 20 turns against each other (damage=1 per turn).
-	a := newTestCombatant(100, 200, 300, []string{"normal"}, move, 50.0)
-	b := newTestCombatant(100, 200, 300, []string{"normal"}, move, 50.0)
+	a := newTestCombatant(100, 200, 300, []string{pogopvp.TypeNormal}, move, 50.0)
+	b := newTestCombatant(100, 200, 300, []string{pogopvp.TypeNormal}, move, 50.0)
 
 	result := mustSimulate(t, &a, &b, pogopvp.BattleOptions{MaxTurns: 20})
 
@@ -141,20 +141,20 @@ func TestSimulate_ChargedMoveFires(t *testing.T) {
 	t.Parallel()
 
 	fast := pogopvp.Move{
-		ID: "JOLT", Type: "normal",
+		ID: moveJolt, Type: pogopvp.TypeNormal,
 		Power: 1, EnergyGain: 10, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 	charged := pogopvp.Move{
-		ID: "BOOM", Type: "normal",
+		ID: moveBoom, Type: pogopvp.TypeNormal,
 		Power: 100, Energy: 30, Turns: 1,
 		Category: pogopvp.MoveCategoryCharged,
 	}
 
-	attacker := newTestCombatant(200, 200, 300, []string{"normal"}, fast, 50.0)
+	attacker := newTestCombatant(200, 200, 300, []string{pogopvp.TypeNormal}, fast, 50.0)
 	attacker.ChargedMoves = []pogopvp.Move{charged}
 
-	defender := newTestCombatant(50, 200, 500, []string{"normal"}, fast, 50.0)
+	defender := newTestCombatant(50, 200, 500, []string{pogopvp.TypeNormal}, fast, 50.0)
 	defender.Shields = 0
 
 	defenderInitialHP := pogopvp.ComputeStats(
@@ -179,20 +179,20 @@ func TestSimulate_ShieldBlocksCharged(t *testing.T) {
 	t.Parallel()
 
 	fast := pogopvp.Move{
-		ID: "JOLT", Type: "normal",
+		ID: moveJolt, Type: pogopvp.TypeNormal,
 		Power: 1, EnergyGain: 10, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 	charged := pogopvp.Move{
-		ID: "BOOM", Type: "normal",
+		ID: moveBoom, Type: pogopvp.TypeNormal,
 		Power: 100, Energy: 30, Turns: 1,
 		Category: pogopvp.MoveCategoryCharged,
 	}
 
-	attacker := newTestCombatant(200, 200, 300, []string{"normal"}, fast, 50.0)
+	attacker := newTestCombatant(200, 200, 300, []string{pogopvp.TypeNormal}, fast, 50.0)
 	attacker.ChargedMoves = []pogopvp.Move{charged}
 
-	defender := newTestCombatant(50, 200, 500, []string{"normal"}, fast, 50.0)
+	defender := newTestCombatant(50, 200, 500, []string{pogopvp.TypeNormal}, fast, 50.0)
 	defender.Shields = 1
 
 	cpm, _ := pogopvp.CPMAt(50.0)
@@ -220,20 +220,20 @@ func TestSimulate_ShieldsDepleteOverMultipleThrows(t *testing.T) {
 	t.Parallel()
 
 	fast := pogopvp.Move{
-		ID: "JOLT", Type: "normal",
+		ID: moveJolt, Type: pogopvp.TypeNormal,
 		Power: 1, EnergyGain: 20, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 	charged := pogopvp.Move{
-		ID: "BOOM", Type: "normal",
+		ID: moveBoom, Type: pogopvp.TypeNormal,
 		Power: 50, Energy: 20, Turns: 1,
 		Category: pogopvp.MoveCategoryCharged,
 	}
 
-	attacker := newTestCombatant(200, 200, 300, []string{"normal"}, fast, 50.0)
+	attacker := newTestCombatant(200, 200, 300, []string{pogopvp.TypeNormal}, fast, 50.0)
 	attacker.ChargedMoves = []pogopvp.Move{charged}
 
-	defender := newTestCombatant(50, 200, 500, []string{"normal"}, fast, 50.0)
+	defender := newTestCombatant(50, 200, 500, []string{pogopvp.TypeNormal}, fast, 50.0)
 	defender.Shields = 1
 
 	result := mustSimulate(t, &attacker, &defender, pogopvp.BattleOptions{MaxTurns: 5})
@@ -253,27 +253,27 @@ func TestSimulate_MultipleChargedPicksCheapest(t *testing.T) {
 	t.Parallel()
 
 	fast := pogopvp.Move{
-		ID: "JOLT", Type: "normal",
+		ID: moveJolt, Type: pogopvp.TypeNormal,
 		Power: 1, EnergyGain: 10, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 	expensive := pogopvp.Move{
-		ID: "BIG", Type: "normal",
+		ID: "BIG", Type: pogopvp.TypeNormal,
 		Power: 200, Energy: 60, Turns: 1,
 		Category: pogopvp.MoveCategoryCharged,
 	}
 	cheap := pogopvp.Move{
-		ID: "CHEAP", Type: "normal",
+		ID: "CHEAP", Type: pogopvp.TypeNormal,
 		Power: 30, Energy: 30, Turns: 1,
 		Category: pogopvp.MoveCategoryCharged,
 	}
 
 	// Big first in slice, cheap second — the simulator must still pick
 	// cheap when only 30 energy is available after turn 3.
-	attacker := newTestCombatant(200, 200, 300, []string{"normal"}, fast, 50.0)
+	attacker := newTestCombatant(200, 200, 300, []string{pogopvp.TypeNormal}, fast, 50.0)
 	attacker.ChargedMoves = []pogopvp.Move{expensive, cheap}
 
-	defender := newTestCombatant(50, 200, 500, []string{"normal"}, fast, 50.0)
+	defender := newTestCombatant(50, 200, 500, []string{pogopvp.TypeNormal}, fast, 50.0)
 	defender.Shields = 0
 
 	result := mustSimulate(t, &attacker, &defender, pogopvp.BattleOptions{MaxTurns: 3})
@@ -297,17 +297,17 @@ func TestSimulate_DefenderDeathCancelsThrowback(t *testing.T) {
 	t.Parallel()
 
 	lethalFast := pogopvp.Move{
-		ID: "LETHAL", Type: "normal",
+		ID: "LETHAL", Type: pogopvp.TypeNormal,
 		Power: 200, EnergyGain: 50, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 	weakFast := pogopvp.Move{
-		ID: "WEAK", Type: "normal",
+		ID: "WEAK", Type: pogopvp.TypeNormal,
 		Power: 1, EnergyGain: 50, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 	charged := pogopvp.Move{
-		ID: "NUKE", Type: "normal",
+		ID: "NUKE", Type: pogopvp.TypeNormal,
 		Power: 100, Energy: 50, Turns: 1,
 		Category: pogopvp.MoveCategoryCharged,
 	}
@@ -315,9 +315,9 @@ func TestSimulate_DefenderDeathCancelsThrowback(t *testing.T) {
 	// Attacker's fast move will one-shot the defender on turn 1. Even
 	// though defender reaches 50 energy the same tick (enough for its
 	// charged move), it is already dead and must not throw back.
-	attacker := newTestCombatant(250, 250, 250, []string{"normal"}, lethalFast, 50.0)
+	attacker := newTestCombatant(250, 250, 250, []string{pogopvp.TypeNormal}, lethalFast, 50.0)
 
-	defender := newTestCombatant(50, 20, 20, []string{"normal"}, weakFast, 10.0)
+	defender := newTestCombatant(50, 20, 20, []string{pogopvp.TypeNormal}, weakFast, 10.0)
 	defender.ChargedMoves = []pogopvp.Move{charged}
 
 	result := mustSimulate(t, &attacker, &defender, pogopvp.BattleOptions{MaxTurns: 5})
@@ -339,12 +339,12 @@ func TestSimulate_InvalidCombatantReturnsError(t *testing.T) {
 		Species: pogopvp.Species{
 			ID:        "ok",
 			BaseStats: pogopvp.BaseStats{Atk: 100, Def: 100, HP: 100},
-			Types:     []string{"normal"},
+			Types:     []string{pogopvp.TypeNormal},
 		},
 		IV:    pogopvp.MustNewIV(0, 0, 0),
 		Level: 30.0,
 		FastMove: pogopvp.Move{
-			ID: "OK", Type: "normal", Power: 1, EnergyGain: 3, Turns: 1,
+			ID: "OK", Type: pogopvp.TypeNormal, Power: 1, EnergyGain: 3, Turns: 1,
 			Category: pogopvp.MoveCategoryFast,
 		},
 	}
@@ -354,8 +354,8 @@ func TestSimulate_InvalidCombatantReturnsError(t *testing.T) {
 		tweak func(*pogopvp.Combatant)
 	}{
 		{"level nan", func(c *pogopvp.Combatant) { c.Level = math.NaN() }},
-		{"level below min", func(c *pogopvp.Combatant) { c.Level = 0.5 }},
-		{"level above max", func(c *pogopvp.Combatant) { c.Level = 99.0 }},
+		{caseLevelBelowMin, func(c *pogopvp.Combatant) { c.Level = 0.5 }},
+		{caseLevelAboveMax, func(c *pogopvp.Combatant) { c.Level = 99.0 }},
 		{"level off grid", func(c *pogopvp.Combatant) { c.Level = 30.25 }},
 		{"iv out of range", func(c *pogopvp.Combatant) { c.IV = pogopvp.IV{Atk: 200, Def: 0, Sta: 0} }},
 		{"fast move no energy gain", func(c *pogopvp.Combatant) { c.FastMove.EnergyGain = 0 }},
@@ -406,7 +406,7 @@ func TestSimulate_MaxTurnsStops(t *testing.T) {
 	// bulky base stats; level 20 produces roughly 200 HP after CPM
 	// flooring, so MaxTurns=10 stops well before a faint.
 	move := pogopvp.Move{
-		ID: "PUFF", Type: "normal",
+		ID: "PUFF", Type: pogopvp.TypeNormal,
 		Power: 1, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
@@ -416,8 +416,8 @@ func TestSimulate_MaxTurnsStops(t *testing.T) {
 	// minimum floor to guarantee the MaxTurns path triggers.
 	move.EnergyGain = 1
 
-	a := newTestCombatant(50, 200, 200, []string{"normal"}, move, 20.0)
-	b := newTestCombatant(50, 200, 500, []string{"normal"}, move, 20.0)
+	a := newTestCombatant(50, 200, 200, []string{pogopvp.TypeNormal}, move, 20.0)
+	b := newTestCombatant(50, 200, 500, []string{pogopvp.TypeNormal}, move, 20.0)
 
 	result := mustSimulate(t, &a, &b, pogopvp.BattleOptions{MaxTurns: 10})
 
@@ -442,13 +442,13 @@ func TestSimulate_ShadowShortensFight(t *testing.T) {
 	t.Parallel()
 
 	move := pogopvp.Move{
-		ID: "TACKLE", Type: "normal",
+		ID: moveTackle, Type: pogopvp.TypeNormal,
 		Power: 5, EnergyGain: 3, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 
 	// Non-shadow baseline establishes the unscaled turn count.
-	nonShadow := newTestCombatant(150, 100, 200, []string{"normal"}, move, 40.0)
+	nonShadow := newTestCombatant(150, 100, 200, []string{pogopvp.TypeNormal}, move, 40.0)
 	baseline := mustSimulate(t, &nonShadow, &nonShadow, pogopvp.BattleOptions{MaxTurns: 500})
 
 	// Shadow attacker vs non-shadow defender. Shadow's ATK × 1.2
@@ -476,12 +476,12 @@ func TestSimulate_ShadowBothSidesMirror(t *testing.T) {
 	t.Parallel()
 
 	move := pogopvp.Move{
-		ID: "TACKLE", Type: "normal",
+		ID: moveTackle, Type: pogopvp.TypeNormal,
 		Power: 5, EnergyGain: 3, Turns: 1,
 		Category: pogopvp.MoveCategoryFast,
 	}
 
-	nonShadow := newTestCombatant(150, 100, 200, []string{"normal"}, move, 40.0)
+	nonShadow := newTestCombatant(150, 100, 200, []string{pogopvp.TypeNormal}, move, 40.0)
 	shadow := nonShadow
 	shadow.IsShadow = true
 
