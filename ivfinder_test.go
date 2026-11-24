@@ -253,19 +253,19 @@ func TestLevelForCP_FitsUnderCap(t *testing.T) {
 		t.Fatalf("NewIV: %v", err)
 	}
 
-	for _, cap := range []int{500, 1500, 2500} {
-		result, err := pogopvp.LevelForCP(base, ivs, cap,
+	for _, cpCap := range []int{500, 1500, 2500} {
+		result, err := pogopvp.LevelForCP(base, ivs, cpCap,
 			pogopvp.FindSpreadOpts{XLAllowed: true})
 		if err != nil {
-			t.Fatalf("cap=%d: LevelForCP: %v", cap, err)
+			t.Fatalf("cap=%d: LevelForCP: %v", cpCap, err)
 		}
 
-		if result.CP > cap {
-			t.Errorf("cap=%d: result.CP=%d exceeds cap", cap, result.CP)
+		if result.CP > cpCap {
+			t.Errorf("cap=%d: result.CP=%d exceeds cap", cpCap, result.CP)
 		}
 		if result.Level < pogopvp.MinLevel || result.Level > pogopvp.MaxLevel {
 			t.Errorf("cap=%d: Level=%.1f outside [%.1f, %.1f]",
-				cap, result.Level, pogopvp.MinLevel, pogopvp.MaxLevel)
+				cpCap, result.Level, pogopvp.MinLevel, pogopvp.MaxLevel)
 		}
 	}
 }
